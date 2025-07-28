@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - '*.rst'
+
+jobs:
+
+  test:
+    name: ${{ matrix.platform.id }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: ubuntu-24.04
+            id: x86_64-linux
+    steps:
+    - name: Clone NStd Repository
+      uses: actions/checkout@v4
+
+    - name: Set up GNAT toolchain (FSF)
+      run: |
+          .ci/setup_gnat.sh
+
+    - name: Build project
+      run: |
+          .ci/build.sh
