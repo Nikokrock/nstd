@@ -1,4 +1,5 @@
 --  Copyright (C) 2025, AdaCore
+--  Copyright (C) 2025, Nicolas Roche
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
@@ -13,17 +14,33 @@ package NStd.StrOps is
                      Next        => Next,
                      Has_Element => Has_Element,
                      Element     => Unsafe_Get);
+   Empty_Str : constant Str;
+
    type Cursor is private;
 
-   function Init (S: String) return Str;
+   function Clone (S: String) return Str;
 
-   function Init (S: Ada.Strings.Unbounded.Unbounded_String) return Str;
+   function Clone (S: Ada.Strings.Unbounded.Unbounded_String) return Str;
+
+   function Clone (S : NStd.Byteops.Bytes) return Str;
 
    function Clone (Self : Str) return Str
    with Inline => True;
    --  Create a complete copy (including buffer) of a Str.
 
+   function Reference (Addr : System.Address; Length : SizeType) return Str
+   with Inline => True;
+
+   function Reference (S : String) return Str
+   with Inline => True;
+
    function Byte_Length (Self : Str) return SizeType;
+
+   function Addr (Self : Str) return System.Address
+   with Inline => True;
+
+   function "=" (Left, Right : Str) return Boolean;
+   function "=" (Left : Str; Right : String) return Boolean;
 
    function Starts_With (Self : Str; Prefix : Str) return Boolean
    with Inline => True;
@@ -31,7 +48,7 @@ package NStd.StrOps is
    function Starts_With (Self : Str; Prefix : String) return Boolean
    with Inline => True;
    --  Return True if Self starts with Prefix
-   
+
    function Ends_With (Self : Str; Suffix : Str) return Boolean
    with Inline => True;
 
@@ -40,7 +57,7 @@ package NStd.StrOps is
    --  Return True if Self ends with Prefix
 
    --  To Implement --
-   
+
    --  function Slice (Self : Str; First, Last : SizeType) return Str;
 
    --  function Head/Tail
@@ -62,10 +79,10 @@ package NStd.StrOps is
 
    --  function Trim_Trailing_ASCII (Self : Str) return Str;
    --  Return a Str with trailing ASCII whitespaces removed
- 
-   ------------------------------
-   --  Cursor based operations --
-   ------------------------------
+
+   -----------------------------
+   -- Cursor based operations --
+   -----------------------------
 
    function First (Self: Str) return Cursor
    with Inline => True;
@@ -79,13 +96,19 @@ package NStd.StrOps is
    function Unsafe_Get(Self: Str; N: Cursor) return Uint32
    with Inline => True;
 
+   function Slice (Self : Str; First, Last : SizeType) return Str
+   with Inline => True;
+
 private
+
    type Str is record
       Content : NStd.ByteOps.Bytes;
    end record;
    for Str'Alignment use Standard'Maximum_Alignment;
    --  Implementation note: we avoid using directly Bytes here in order to
    --  strong penalty on finalization.
+
+   Empty_Str : constant Str := (Content => NStd.Byteops.Empty_Bytes);
 
    type Cursor is record
       Offset     : NStd.ByteOps.Cursor;
@@ -94,4 +117,5 @@ private
    end record;
    -- Implementation note: have the next offset ready along with the codepoint
    -- at offset remove penalty of two lookups during iteration.
+
 end NStd.StrOps;

@@ -1,27 +1,28 @@
 --  Copyright (C) 2025, AdaCore
+--  Copyright (C) 2025, Nicolas Roche
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
 
 package body NStd.StrOps is
 
-   function Init (S: String) return Str
+   function Clone (S: String) return Str
    is
    begin
       return Result : Str do
          if S'Length > 0 then
-            NStd.Byteops.Init (Result.Content, S);
+            Result.Content := NStd.Byteops.Clone (S);
          end if;
       end return;
-   end init;
+   end Clone;
 
-   function Init (S: Ada.Strings.Unbounded.Unbounded_String) return Str
+   function Clone (S: Ada.Strings.Unbounded.Unbounded_String) return Str
    is
    begin
       return result: Str do
-         NStd.Byteops.Init (Result.Content, S);
+         Result.Content :=  NStd.Byteops.Clone (S);
       end return;
-   end Init;
+   end Clone;
 
    -- Clone --
 
@@ -31,13 +32,36 @@ package body NStd.StrOps is
       return (Content => NStd.Byteops.Clone (Self.Content));
    end Clone;
 
+   function Clone (S : NStd.Byteops.Bytes) return Str
+   is
+   begin
+      return (Content => NStd.Byteops.Clone (S));
+   end Clone;
+
+   function Reference (Addr : System.Address; Length : SizeType) return Str
+   is
+   begin
+      return (Content => NStd.Byteops.Reference (Addr, Length));
+   end Reference;
+
+   function Reference (S : String) return Str
+   is
+   begin
+      return (Content => NStd.Byteops.Reference (S));
+   end Reference;
+
    function Byte_Length (Self : Str) return SizeType is
    begin
       return NStd.Byteops.Length (Self.Content);
    end Byte_Length;
 
+   function Addr (Self : Str) return System.Address is
+   begin
+      return NStd.Byteops.Addr (Self.Content);
+   end Addr;
+
    -- Starts_With --
-   
+
    function Starts_With (Self : Str; Prefix : Str) return Boolean
    is
    begin
@@ -101,7 +125,27 @@ package body NStd.StrOps is
    function Unsafe_get(self: Str; n: Cursor) return Uint32
    is
       pragma Suppress(All_Checks);
+      pragma Unreferenced (Self);
    begin
       return N.CodePoint;
    end unsafe_get;
+
+   function Slice (Self : Str; First, Last : SizeType) return Str
+   is
+   begin
+      return (Content => NStd.Byteops.Slice (Self.Content, First, Last));
+   end;
+
+   function "=" (Left, Right : Str) return Boolean is
+      use all type NStd.Byteops.Bytes;
+   begin
+      return Left.Content = Right.Content;
+   end "=";
+
+   function "=" (Left : Str; Right : String) return Boolean is
+      use all type NStd.Byteops.Bytes;
+   begin
+      return Left.Content = Right;
+   end "=";
+
 end NStd.StrOps;

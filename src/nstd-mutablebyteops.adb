@@ -1,8 +1,8 @@
 --  Copyright (C) 2025, AdaCore
+--  Copyright (C) 2025, Nicolas Roche
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
-
 with NStd.Unsafe;
 
 package body NStd.MutableByteOps is
@@ -36,11 +36,15 @@ package body NStd.MutableByteOps is
       return Unsafe.Get (self.content.addr, SizeType (C));
    end unsafe_get;
 
-   function Move_to_bytes(self: in out MutableBytes) return NStd.ByteOps.Bytes is
+   -- Move_To_Bytes --
+
+   function Move_To_Bytes
+      (Self: in out MutableBytes) return NStd.ByteOps.Bytes
+   is
       Result : NStd.ByteOps.Bytes;
    begin
       --  Allocate the Bytes object
-      Result := NStd.ByteOps.Init (Self.Content.Addr, Self.Length);
+      Result := NStd.ByteOps.Acquire (Self.Content.Addr, Self.Length);
 
       --  Release the MutableBytes one by resetting it
       Self.Content.Addr := System.Null_Address;
@@ -48,7 +52,7 @@ package body NStd.MutableByteOps is
       Self.Capacity := 0;
 
       return Result;
-   end move_to_bytes;
+   end Move_To_Bytes;
 
    procedure non_inlined_append(self: in out MutableBytes; src: Byte) is
       addr : System.Address;
@@ -77,6 +81,11 @@ package body NStd.MutableByteOps is
          Non_Inlined_Append(self, src);
       end if;
    end append;
+
+   procedure Append (self: in out MutableBytes; src: Character) is
+   begin
+      Append (Self, Byte (Character'Pos (Src)));
+   end Append;
 
    procedure append(self: in out MutableBytes; src: NStd.ByteOps.Bytes) is
    begin

@@ -1,4 +1,5 @@
 --  Copyright (C) 2025, AdaCore
+--  Copyright (C) 2025, Nicolas Roche
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
@@ -40,6 +41,7 @@ package NStd.MutableByteOps is
    --  exception.
 
    procedure Append (Self: in out MutableBytes; Src: Byte);
+   procedure Append (Self: in out MutableBytes; Src: Character);
    procedure Append (Self: in out MutableBytes; Src: NStd.ByteOps.Bytes);
    procedure Append (Self: in out MutableBytes; Src: MutableBytes);
    procedure Append (Self: in out MutableBytes; Src: String);

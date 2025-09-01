@@ -3,7 +3,7 @@ abstract project NStd_Constants is
     NSTD_VERSION_DEFAULT := "0.0";
     NSTD_OS_DEFAULT := "unix";
     NSTD_BUILD_MODE_DEFAULT := "PROD";
-    NSTD_FINALIZATION_DEFAULT := "standard";
+    NSTD_FINALIZATION_DEFAULT := "relaxed";
     NSTD_MALLOC_DEFAULT := "malloc";
     NSTD_REFCOUNT_DEFAULT := "arc";
 end NStd_Constants;
