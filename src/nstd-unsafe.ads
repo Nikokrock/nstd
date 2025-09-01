@@ -1,8 +1,8 @@
 --  Copyright (C) 2025, AdaCore
+--  Copyright (C) 2025, Nicolas Roche
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
-
 --  Our "C API" written in Ada
 
 with System; use System;
@@ -112,5 +112,14 @@ package NStd.Unsafe is
    function Reference (S : String) return Address
    with Inline => True;
    --  Create a reference to an Ada String memory address
+
+   function Starts_With
+      (Self   : Address;
+       Length : SizeType;
+       Prefix : Address;
+       Prefix_Length : SizeType)
+      return Boolean
+   with Inline => True;
+   --  Check if buffer Self starts with Prefix
 
 end NStd.Unsafe;

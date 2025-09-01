@@ -1,4 +1,5 @@
 --  Copyright (C) 2025, AdaCore
+--  Copyright (C) 2025, Nicolas Roche
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
@@ -373,5 +374,25 @@ package body NStd.Unsafe is
          return Null_Address;
       end if;
    end Reference;
+
+   -- Starts_With --
+
+   function Starts_With
+      (Self   : Address;
+       Length : SizeType;
+       Prefix : Address;
+       Prefix_Length : SizeType)
+      return Boolean
+   is
+   begin
+      if Prefix_Length = 0 then
+         return True;
+      elsif Length < Prefix_Length then
+         return False;
+      else
+         return NStd.Memory.Memcmp
+            (Dst => Self, Src => Prefix, Length => Prefix_Length) = 0;
+      end if;
+   end Starts_With;
 
 end NStd.Unsafe;
