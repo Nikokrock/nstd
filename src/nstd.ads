@@ -1,4 +1,5 @@
 --  Copyright (C) 2025, AdaCore
+--  Copyright (C) 2025, Nicolas Roche
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
@@ -38,7 +39,14 @@ package NStd is
    function As_Char (B: Byte) return Character
    with Inline => True;
 
+   function As_Byte (C : Character) return Byte
+   with Inline_Always => True;
+
    function Min (S1, S2: SizeType) return SizeType
    with Inline => True;
 
+   function "=" (B : Byte; C : Character) return Boolean
+   with Inline_Always => True;
+
+   function As_String (U : UInt64) return String;
 end NStd;
