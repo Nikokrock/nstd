@@ -21,4 +21,4 @@ pip install e3-testsuite
 export GPR_PROJECT_PATH=`pwd`/install/share/gpr:$GPR_PROJECT_PATH
 ../../testsuite/nstd/run-tests -o ./out -d ./tmp
 
-echo "[Link example](https://github.com/$GITHUB_REPOSITORY/nstd/blob/$GITHUB_REF_NAME/nstd/nstd.gpr)" > "$GITHUB_STEP_SUMMARY"
+echo "[Link example](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/nstd/nstd.gpr)" > "$GITHUB_STEP_SUMMARY"
