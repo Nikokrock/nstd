@@ -1,0 +1,6 @@
+
+abstract project NStd_Re_Constants is
+    NSTD_RE_VERSION_DEFAULT := "0.0";
+    NSTD_RE_OS_DEFAULT := "unix";
+    NSTD_RE_BUILD_MODE_DEFAULT := "PROD";
+end NStd_Re_Constants;
