@@ -1,1 +1,9 @@
 .build/
+/nstd.json
+/lib/
+/obj/
+
+*.pyc
+*.o
+*.ali
+__pycache__

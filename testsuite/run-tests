@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import sys
+import os
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(ROOT_DIR))
+
+from gprproject.testsuite import LibTestsuite
+
+class stdTestsuite(LibTestsuite):
+    @property
+    def default_withed_projects(self) -> list[str]:
+        return ["nstd"]
+
+if __name__ == '__main__':
+    stdTestsuite.main(os.path.dirname(__file__))
