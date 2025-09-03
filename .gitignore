@@ -1,7 +1,9 @@
-.build/
+/.build/
+/.build_doc/
 /nstd.json
 /lib/
 /obj/
+/docs/_build/
 
 *.pyc
 *.o

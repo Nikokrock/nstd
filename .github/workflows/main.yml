@@ -10,7 +10,14 @@ on:
       - '*.rst'
 
 jobs:
-
+  build_doc:
+    name: Build HTML documentation
+    steps:
+    - name: Clone NStd Repository
+      uses: actions/checkout@v4
+    - name: Build HTML documentation
+      run: |
+          .ci/build_doc.sh
   test:
     name: ${{ matrix.platform.id }}
     runs-on: ${{ matrix.platform.os }}
@@ -32,3 +39,5 @@ jobs:
       run: |
           export PATH=`pwd`/.build/installs/bin:$PATH
           .ci/build.sh
+
+

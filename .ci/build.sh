@@ -18,9 +18,7 @@ pip install e3-testsuite
 
 export GPR_PROJECT_PATH=`pwd`/install/share/gpr:$GPR_PROJECT_PATH
 
+# Cannot pass with relaxed finalization
+# ../../nstd_re/nstd_re.gpr.py build --install --prefix=`pwd`/install
 
-../../nstd_re/nstd_re.gpr.py build --install --prefix=`pwd`/install
-
-exit 1
 ../../testsuite/nstd/run-tests -o ./out -d ./tmp
-# echo "[Link example](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/nstd/nstd.gpr)" > "$GITHUB_STEP_SUMMARY"
