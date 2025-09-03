@@ -12,6 +12,7 @@ on:
 jobs:
   build_doc:
     name: Build HTML documentation
+    runs-on: ubuntu-24.04
     steps:
     - name: Clone NStd Repository
       uses: actions/checkout@v4
