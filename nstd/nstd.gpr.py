@@ -8,7 +8,7 @@ import os
 # Support code is located in parent directory
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(SOURCE_DIR)
-sys.path.append(REPO_DIR)
+sys.path.insert(0, REPO_DIR)
 
 from gprproject import BuilderApp
 
