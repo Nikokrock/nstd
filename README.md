@@ -20,4 +20,7 @@ keys:
     Revert: Revert
     Style: Style adjustment
     Test: Test update
-    
+
+## Automatic versionning
+
+TODO: Describe BASE_VERSION, BASE_RELEASE_VERSION, VERSION
