@@ -8,6 +8,10 @@ with System.Storage_Elements;
 
 package NStd is
 
+   type SInt32 is new Integer;
+
+   type SInt64 is new Long_Long_Integer;
+
    type UInt8 is mod 2 ** 8;
    pragma Provide_Shift_Operators(UInt8);
 
