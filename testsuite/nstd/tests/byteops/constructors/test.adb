@@ -1,4 +1,5 @@
 with Test_Assert;
+with System;
 with NStd.Byteops;
 with NStd;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -70,6 +71,11 @@ begin
       when Constraint_Error =>
          A.Assert (True, "constraint_error raised");
    end;
+
+   A.Assert (Count (Reference ("0123456789"), 16#30#) = 1);
+   A.Assert (Count (Reference ("01234567890123456789"), 16#30#) = 2);
+   A.Assert (Count (Reference (""), 16#30#) = 0);
+   A.Assert (Count (Reference (System.Null_Address, 0), 16#30#) = 0);
    return A.Report;
 
 

@@ -2,7 +2,7 @@ with Test_Assert;
 with NStd; use NStd;
 with NStd.Unsafe;
 with NStd.Lifecycle;
-with System;
+with NStd.Mem; use NStd.Mem;
 with GNAT.Source_Info;
 
 function Test return Integer is
@@ -19,8 +19,8 @@ function Test return Integer is
    Mem4 : Life.Refcounted_Mem;
    Mem5 : Life.Refcounted_Mem;
 
-   Region : constant System.Address := NStd.Unsafe.Allocate (24);
-   Region2 : constant System.Address := NStd.Unsafe.Allocate (8);
+   Region : constant Block := Allocate (24);
+   Region2 : constant Block := Allocate (8);
 
    procedure Assert_Char
       (M : Life.Refcounted_Mem; Idx : SizeType; C : Character;
@@ -31,7 +31,7 @@ function Test return Integer is
        Location : String := SI.Source_Location)
    is
       Result : constant Character :=
-         As_Char (NStd.Unsafe.Get (Life.Addr (M), Idx));
+         As_Char (NStd.Unsafe.Get (Life.Block (M).Addr, Idx));
    begin
       if C /= Result then
          A.Assert
@@ -58,9 +58,9 @@ function Test return Integer is
        Location : String := SI.Source_Location)
    is
       C1 : constant Character :=
-         As_Char (NStd.Unsafe.Get (Life.Addr (M1), Id1));
+         As_Char (NStd.Unsafe.Get (Life.Block (M1).Addr, Id1));
       C2 : constant Character :=
-         As_Char (NStd.Unsafe.Get (Life.Addr (M2), Id2));
+         As_Char (NStd.Unsafe.Get (Life.Block (M2).Addr, Id2));
    begin
       if C1 = C2 then
          A.Assert
@@ -78,18 +78,18 @@ begin
    --  Ensure the memory for Region2 is not set to 0 to ensure that we catch
    --  issues with implementations supporting SSO.
    for Idx in 0 .. 7 loop
-      NStd.Unsafe.Set (Region2, SizeType (Idx), 42);
+      NStd.Unsafe.Set (Region2.Addr, SizeType (Idx), 42);
    end loop;
 
    --  Check Basic instantiation
    --  On a short string
-   Life.Clone_And_Start_Refcounting (Mem1, S1 (1)'Address, S1'Length);
+   Life.Clone_And_Start_Refcounting (Mem1, (S1 (1)'Address, S1'Length));
    Assert_Char (Mem1, 0, 'A');
    Assert_Char (Mem1, 9, 'J');
    A.Assert (Life.Length (Mem1) = 10);
 
    --  On a bigger one
-   Life.Clone_And_Start_Refcounting (Mem2, S2 (1)'Address, S2'Length);
+   Life.Clone_And_Start_Refcounting (Mem2, (S2 (1)'Address, S2'Length));
    Assert_Char (Mem2, 0, '0');
    Assert_Char (Mem2, 35, 'z');
    A.Assert
@@ -123,12 +123,23 @@ begin
    declare
       Mem : Life.Refcounted_Mem;
    begin
-      Life.Start_Refcounting (Mem, Region, 24);
+      Life.Start_Refcounting (Mem, Region);
       A.Assert (Life.Reference_Count (Mem) = 1);
 
       --  With small string optimisation (SSO), reference counting is disabled.
-      Life.Start_Refcounting (Mem, Region2, 8);
+      Life.Start_Refcounting (Mem, Region2);
       A.Assert (Life.Reference_Count (Mem) = 0);
+   end;
+
+   declare
+      Mem  : Life.Refcounted_Mem;
+      Mem2 : Life.Refcounted_Mem;
+   begin
+      Life.Start_Limited_Reference (Mem, Region);
+      A.Assert (Life.Reference_Count (Mem) = 0);
+
+      Mem2 := Mem;
+      A.Assert (Life.Reference_Count (Mem2) = 1);
    end;
 
    --  Slice tests
