@@ -8,8 +8,8 @@ The library intends to use the idea of conventional commits from Angular
 project. The adopted format is using git trailer format with the following
 keys:
 
-    Fix: short description for a fix (impact PATCH number)
-    Feature: short description for a new feature (impact MINOR number)
+    fix: short description for a fix (impact PATCH number)
+    feature: short description for a new feature (impact MINOR number)
     FIX: short description for a fix that introduce a breaking change
     FEATURE: short description for a feature that introduce a breaking feature
     Build: Update on the build system 
