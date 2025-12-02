@@ -9,7 +9,6 @@ from e3.fs import cp, mkdir
 from e3.os.fs import df
 from e3.testsuite.driver.classic import ClassicTestDriver
 from e3.testsuite.control import YAMLTestControlCreator
-from e3.testsuite.process import check_call
 from . import gprbuild, run_test_program
 
 
@@ -89,11 +88,8 @@ class BasicTestDriver(ClassicTestDriver):
 
         pre_test_py = os.path.join(self.test_env["test_dir"], "pre_test.py")
         if os.path.isfile(pre_test_py):
-            check_call(
-                self,
+            self.shell(
                 [interpreter(), pre_test_py],
-                cwd=self.test_env["working_dir"],
-                timeout=self.default_process_timeout,
             )
 
         # Run the test program
@@ -116,11 +112,8 @@ class BasicTestDriver(ClassicTestDriver):
 
         post_test_py = os.path.join(self.test_env["test_dir"], "post_test.py")
         if os.path.isfile(post_test_py):
-            check_call(
-                self,
+            self.shell(
                 [interpreter(), post_test_py],
-                cwd=self.test_env["working_dir"],
-                timeout=self.default_process_timeout,
             )
 
     def compute_failures(self):

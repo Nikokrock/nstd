@@ -80,12 +80,12 @@ begin
       S_Addr := Addr (S);
       M.Start_Measure;
       for Idx in 1 .. 300_000_000 loop
-         if Nstd.Unsafe.Get_UTF8_2 (S_Addr) = 97 then
+         if Nstd.Unsafe.Get_UTF8 (S_Addr) = 97 then
             Counter := Counter + 1;
          end if;
       end loop;
       M.End_Measure;
-      M.Display_Measure ("get_utf8_2 (2)");
+      M.Display_Measure ("get_utf8 (2)");
       A.Assert (Counter, 300_000);
 
       Counter := 0;
@@ -124,12 +124,12 @@ begin
       S_Addr := Addr (S);
       M.Start_Measure;
       for Idx in 1 .. 100_000_000 loop
-         if Nstd.Unsafe.Get_UTF8_2 (S_Addr) = 97 then
+         if Nstd.Unsafe.Get_UTF8 (S_Addr) = 97 then
             Counter := Counter + 1;
          end if;
       end loop;
       M.End_Measure;
-      M.Display_Measure ("get_utf8_2 (2)");
+      M.Display_Measure ("get_utf8 (2)");
       A.Assert (Counter, 300_000);
 
       M.Start_Measure;

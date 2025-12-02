@@ -15,7 +15,6 @@ from e3.testsuite.driver.classic import (
     ProcessResult,
     TestAbortWithFailure,
 )
-from e3.testsuite.process import check_call
 from e3.testsuite.result import Log, TestStatus
 from random import getrandbits
 
@@ -108,7 +107,8 @@ def gprbuild(
             "-P",
             project_file,
         ] + scenario_cmd
-        check_call(driver, gnatcov_cmd, cwd=cwd, timeout=timeout, **kwargs)
+        p = Run(gnatcov_cmd, cwd=cwd, timeout=timeout, **kwargs)
+        assert p.status == 0, "gnatcov instrumentation failed"
 
     # Determine the gprbuild command line
     gprbuild_cmd = [
@@ -136,13 +136,13 @@ def gprbuild(
             "--target={target}".format(target=driver.env.target.triplet)
         )
 
-    check_call(
-        driver,
+    p =Run(
         gprbuild_cmd,
         cwd=cwd,
         timeout=timeout,
         **kwargs,
     )
+    assert p.status == 0, "gprbuild failed:\n %s" % p.out
 
 
 def bin_check_call(
