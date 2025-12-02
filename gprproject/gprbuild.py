@@ -170,7 +170,7 @@ class GPRTool:
                         "instrument",
                         "--full-slugs",
                         "--no-subprojects",
-                        "--level=stmt+decision",
+                        "--level=stmt+mcdc",
                         "--restricted-to-languages=Ada",
                     ]
                 )
