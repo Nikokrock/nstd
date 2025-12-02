@@ -1,3 +1,7 @@
+--  Copyright (C) 2025, Nicolas Roche
+--
+--  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
+
 with System; use System;
 
 package NStd.Mem is
