@@ -45,4 +45,5 @@ package body NStd is
    begin
       return B = As_Byte (C);
    end "=";
+
 end NStd;
