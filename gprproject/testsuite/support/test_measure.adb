@@ -3,7 +3,6 @@ with Ada.Text_IO;
 
 package body Test_Measure is
    Start : Time;
-   Test_Time : Duration;
 
    procedure Start_Measure is
    begin
@@ -12,7 +11,7 @@ package body Test_Measure is
 
    procedure End_Measure is
    begin
-      Test_Time := Clock - Start;
+      Measure_Time := Clock - Start;
    end End_Measure;
 
    procedure End_Measure (Message : String; Compare_With : Duration := 0.0) is
@@ -27,13 +26,13 @@ package body Test_Measure is
       if Compare_With > 0.0 then
          declare
             Ratio : constant Long_Float :=
-              Long_Float (Test_Time) / Long_Float (Iterations) / Long_Float (Compare_With) * 100.0;
+              Long_Float (Measure_Time) / Long_Float (Iterations) / Long_Float (Compare_With) * 100.0;
          begin
             Ada.Text_IO.Put_Line
                (Message & ":" &
                 Integer (Ratio)'Img & "% compared to baseline");
          end;
       end if;
-      Ada.Text_IO.Put_Line (Message & ":" & Duration'Image (Test_Time / Duration (Iterations)) & "s total time");
+      Ada.Text_IO.Put_Line (Message & ":" & Duration'Image (Measure_Time / Duration (Iterations)) & "s total time");
    end Display_Measure;
 end Test_Measure;

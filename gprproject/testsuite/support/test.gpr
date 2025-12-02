@@ -13,7 +13,7 @@ project Test is
       --  Building test programs in debug mode makes it easier to work with
       --  tests.
       for Switches ("Ada") use
-        ("-g", "-O3", "-gnatn", "-gnateE",
+        ("-g", "-O3", "-gnatn", "-gnateE", "-gnatD",
          "-gnatwaCJe", "-fstack-check", "-gnatw.P");
       for Switches ("C") use ("-g", "-Wunreachable-code");
       for Switches ("s-memory.adb") use ("-gnatg") & Compiler'Switches ("Ada");

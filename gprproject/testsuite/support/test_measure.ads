@@ -1,5 +1,7 @@
 package Test_Measure is
 
+   Measure_Time : Duration;
+
    procedure Start_Measure;
    procedure End_Measure;
    procedure Display_Measure (Message : String; Compare_With : Duration := 0.0;
