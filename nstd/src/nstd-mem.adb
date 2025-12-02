@@ -1,3 +1,6 @@
+--  Copyright (C) 2025, Nicolas Roche
+--
+--  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 with NStd.Memory;
 with Ada.Unchecked_Conversion;
 
