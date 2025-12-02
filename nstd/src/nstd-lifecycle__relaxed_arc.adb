@@ -29,6 +29,8 @@ package body NStd.Lifecycle is
    --                         of the memory is manual.
 
    SSO_Max : constant SizeType := 16;
+   Limited_Reference : constant Address := Null_Address;
+   Reference : constant Address := To_Address (SizeType (1));
 
    -- Finalize --
    procedure Finalize (Self : in out Limited_Address) is
@@ -37,29 +39,39 @@ package body NStd.Lifecycle is
    end Finalize;
 
    -- Adjust --
+
    procedure Adjust (Self : in out Refcounted_Mem) is
       pragma Suppress (All_Checks);
    begin
-      if Self.Length <= SSO_Max then
-         Self.Addr := NStd.Unsafe.Addr (Self'Address, 16);
+      if Self.Block.Length <= SSO_Max then
+         --  If the string size is inferior to SSO_Max then the we need to
+         --  adjust the address so that it points to the new object and not the
+         --  former one.
+         --  ??? Need to be reviewed ???
+         Self.Block.Addr := Self'Address + SizeType (16);
       else
          if Self.Counter /= Null_Address then
+            --  If the block is already refcounted, just increment the counter.
             NStd.Atomics.Increment (Self.Counter);
-         else
-            --  On assignment of reference force cloning
-            Clone_And_Start_Refcounting (Self, Self.Addr, Self.Length);
+
+         elsif Self.Block_Addr = Limited_Reference then
+            --  On assignment of reference force cloning if this is a limited
+            --  reference.
+            Clone_And_Start_Refcounting (Self, Self.Block);
+
          end if;
       end if;
    end Adjust;
 
    -- Finalize --
+
    procedure Finalize (Self : in out Refcounted_Mem) is
       pragma Suppress (All_Checks);
       CA : constant System.Address := Self.Counter;
    begin
-      if Self.Length <= SSO_Max or else CA = Null_Address then
-         Self.Length := 0;
-         Self.Addr := Null_Address;
+      --  SSO case or reference to non-managed memory block.
+      if Self.Block.Length <= SSO_Max or else CA = Null_Address then
+         Self.Block   := NStd.Mem.Empty_BLock;
          Self.Counter := Null_Address;
          return;
       end if;
@@ -68,36 +80,40 @@ package body NStd.Lifecycle is
          BA : constant System.Address := Self.Block_Addr;
       begin
          if NStd.Atomics.Decrement (CA) then
+            --  Free the memory block.
             NStd.Memory.Free (BA);
+
+            --  In the case the counter was allocated separately also free it.
             if BA /= CA then
                NStd.Memory.Free (CA);
             end if;
+
+            --  Reset the structure
             Self.Counter := Null_Address;
-            Self.Addr    := Null_Address;
-            Self.Length  := 0;
+            Self.Block   := NStd.Mem.Empty_Block;
          end if;
       end;
    end Finalize;
 
    -- Start_Refcounting --
+
    procedure Start_Refcounting
-       (Self : in out Refcounted_Mem;
-        Addr : System.Address;
-        Size : SizeType)
+      (Self  : in out Refcounted_Mem; Block : NStd.Mem.Block)
    is
       pragma Suppress (All_Checks);
    begin
-      if Size <= 16 then
-         Self.Addr := NStd.Unsafe.Addr (Self'Address, 16);
-         Self.Addr := NStd.Memory.memcpy (Self.Addr, Addr, Size);
-         Self.Length := Size;
+      if Block.Length <= SSO_Max then
+         Self.Block.Addr := Self'Address + 16;
+         Self.Block.Length := Block.Length;
+         Self.Block.Addr := NStd.Memory.memcpy
+            (Self.Block.Addr, Block.Addr, Block.Length);
          --  As we are in charge of the original block of memory we need to
          --  release it.
-         NStd.Memory.Free (Addr);
+         NStd.Memory.Free (Block.Addr);
+
       else
-         Self.Addr := Addr;
-         Self.Block_Addr := Addr;
-         Self.Length := Size;
+         Self.Block := Block;
+         Self.Block_Addr := Block.Addr;
 
          --  We need a separate memory block for the counter in that case
          Self.Counter := NStd.Unsafe.Allocate (8);
@@ -105,23 +121,40 @@ package body NStd.Lifecycle is
       end if;
    end Start_Refcounting;
 
-   procedure Start_Reference
-       (Self : in out Refcounted_Mem;
-        Addr : System.Address;
-        Size : SizeType)
+   procedure Start_Limited_Reference
+       (Self  : in out Refcounted_Mem;
+        Block : NStd.Mem.Block)
    is
       pragma Suppress (All_Checks);
    begin
-      if Size <= 16 then
-         Self.Addr := NStd.Unsafe.Addr (Self'Address, 16);
-         Self.Addr := NStd.Memory.memcpy (Self.Addr, Addr, Size);
-         Self.Length := Size;
-         --  As we are in charge of the original block of memory we need to
-         --  release it.
+      if Block.Length <= SSO_Max then
+         Self.Block.Addr := Self'Address + 16;
+         Self.Block.Addr := NStd.Memory.memcpy
+            (Self.Block.Addr, Block.Addr, Block.Length);
+         Self.Block.Length := Block.Length;
       else
-         Self.Addr := Addr;
-         Self.Block_Addr := Addr;
-         Self.Length := Size;
+         Self.Block := Block;
+         Self.Block_Addr := Limited_Reference;
+
+         --  This is a pure reference. No need for counters
+         Self.Counter := System.Null_Address;
+      end if;
+   end Start_Limited_Reference;
+
+   procedure Start_Reference
+       (Self  : in out Refcounted_Mem;
+        Block : NStd.Mem.Block)
+   is
+      pragma Suppress (All_Checks);
+   begin
+      if Block.Length <= SSO_Max then
+         Self.Block.Addr := Self'Address + 16;
+         Self.Block.Addr := NStd.Memory.memcpy
+            (Self.Block.Addr, Block.Addr, Block.Length);
+         Self.Block.Length := Block.Length;
+      else
+         Self.Block := Block;
+         Self.Block_Addr := Reference;
 
          --  This is a pure reference. No need for counters
          Self.Counter := System.Null_Address;
@@ -129,22 +162,22 @@ package body NStd.Lifecycle is
    end Start_Reference;
 
    procedure Clone_And_Start_Refcounting
-      (Self         : in out Refcounted_Mem;
-       Addr         : System.Address;
-       Size         : SizeType)
+      (Self : in out Refcounted_Mem; Block : NStd.Mem.Block)
    is
       pragma Suppress (All_Checks);
    begin
-      if Size <= SSO_Max then
-         Self.Addr := NStd.Unsafe.Addr (Self'Address, 16);
-         Self.Addr := NStd.Memory.memcpy (Self.Addr, Addr, Size);
-         Self.Length := Size;
+      if Block.Length <= SSO_Max then
+         Self.Block.Addr := Self'Address + 16;
+         Self.Block.Addr := NStd.Memory.memcpy
+            (Self.Block.Addr, Block.Addr, Block.Length);
+         Self.Block.Length := Block.Length;
       else
-         Self.Block_Addr := NStd.Unsafe.Allocate (Size + 8);
-         Self.Addr := NStd.Memory.memcpy
-            (NStd.Unsafe.Addr (Self.Block_Addr, 8), Addr, Size);
+         --  Allocate needed data + size of counter address
+         Self.Block_Addr := NStd.Unsafe.Allocate (Block.Length + 8);
+         Self.Block.Addr := NStd.Memory.memcpy
+            (Self.Block_Addr + 8, Block.Addr, Block.Length);
          Self.Counter := Self.Block_Addr;
-         Self.Length := Size;
+         Self.Block.Length := Block.Length;
          NStd.Atomics.Initialize (Self.Counter);
       end if;
    end;
@@ -160,22 +193,22 @@ package body NStd.Lifecycle is
       Abs_Last  : SizeType := Last;
       Slice_Length : SizeType := 0;
    begin
-      if Self.Length = 0 then
+      if Self.Block.Length = 0 then
          return Empty_Refcounted_Mem;
       end if;
 
-      if Abs_Last < -Self.Length then
+      if Abs_Last < -Self.Block.Length then
          return Empty_Refcounted_Mem;
       elsif Abs_Last < 0 then
-         Abs_Last := Self.Length + Abs_Last;
-      elsif Abs_Last > Self.Length then
-         Abs_Last := Self.Length;
+         Abs_Last := Self.Block.Length + Abs_Last;
+      elsif Abs_Last > Self.Block.Length then
+         Abs_Last := Self.Block.Length;
       end if;
 
-      if Abs_First < - Self.Length then
+      if Abs_First < - Self.Block.Length then
          Abs_First := 0;
       elsif Abs_First < 0 then
-         Abs_First := Self.Length + Abs_First;
+         Abs_First := Self.Block.Length + Abs_First;
       end if;
 
       if Abs_First >= Abs_Last then
@@ -186,39 +219,55 @@ package body NStd.Lifecycle is
 
       if Slice_Length <= 16 then
          return Result : Refcounted_Mem do
-            Result.Addr := NStd.Unsafe.Addr (Result'Address, 16);
-            Result.Addr := NStd.Memory.memcpy
-               (Result.Addr, Unsafe.Addr (Self.Addr, Abs_First), Slice_Length);
-            Result.Length := Slice_Length;
+            Result.Block.Addr := Result'Address + 16;
+            Result.Block.Addr := NStd.Memory.memcpy
+               (Result.Block.Addr,
+                Self.Block.Addr + Abs_First,
+                Slice_Length);
+            Result.Block.Length := Slice_Length;
          end return;
       else
          return Result : Refcounted_Mem do
-            Result.Addr := Unsafe.Addr (Self.Addr, First);
+            Result.Block.Addr := Self.Block.Addr + First;
             Result.Block_Addr := Self.Block_Addr;
-            Result.Length := Slice_Length;
+            Result.Block.Length := Slice_Length;
             Result.Counter := Self.Counter;
-            NStd.Atomics.Increment (Self.Counter);
+
+            if Self.Counter /= Null_Address then
+               NStd.Atomics.Increment (Self.Counter);
+            elsif Self.Block_Addr = Limited_Reference then
+               Clone_And_Start_Refcounting (Result, Result.Block);
+            end if;
          end return;
       end if;
    end Slice;
 
+   -- Block --
+
+   function Block (Self : Refcounted_Mem) return NStd.Mem.Block is
+   begin
+      return Self.Block;
+   end Block;
+
    function Addr (Self : Refcounted_Mem) return System.Address is
    begin
-      return Self.Addr;
+      return Self.Block.Addr;
    end Addr;
 
    function Length (Self : Refcounted_Mem) return SizeType is
    begin
-      return Self.Length;
+      return Self.Block.Length;
    end Length;
 
    -- Reference_Count --
+
    function Reference_Count (Self : Refcounted_Mem) return UInt64 is
    begin
-      if Self.Length <= SSO_Max or else Self.Counter = Null_Address then
+      if Self.Block.Length <= SSO_Max or else Self.Counter = Null_Address then
          return 0;
       else
          return NStd.Atomics.Counter_Value (Self.Counter);
       end if;
    end Reference_Count;
+
 end NStd.LifeCycle;

@@ -5,6 +5,7 @@
 --
 pragma Extensions_Allowed (On);
 with System; use System;
+with NStd.Mem; use NStd.Mem;
 
 package NStd.Lifecycle is
 
@@ -18,23 +19,35 @@ package NStd.Lifecycle is
    procedure Finalize (Self : in out Limited_Address);
 
    type Refcounted_Mem is private;
+   --  An object to handle a possibly ref counted block of memory
+   --
+   --  The object supports various lifecycle modes. The mode is selected at
+   --  object creation and cannot be changed afterwards
+   --
+   --  - Refcounted memory (Start_Refcounting or Clone_And_Start_Refcounting).
+   --    In that mode copy and slice of the object do not lead to data copy.
+   --    Only a atomic reference counter is updated. When the reference counter
+   --    reach 0, the block of memory is automatically freed.
+   --  - Limited reference. If the memory block is initialized using
+   --    Start_Limited_Reference then no reference counter is used. On object
+   --    copy or slice the object is fully copied.
+   --  - Reference. Same as limited reference except that the reference can be
+   --    copied.
 
    procedure Start_Reference
-       (Self : in out Refcounted_Mem;
-        Addr : System.Address;
-        Size : SizeType)
+       (Self  : in out Refcounted_Mem; Block : NStd.Mem.Block)
+   with Inline_Always => True;
+
+   procedure Start_Limited_Reference
+       (Self  : in out Refcounted_Mem; Block : NStd.Mem.Block)
    with Inline_Always => True;
 
    procedure Start_Refcounting
-      (Self : in out Refcounted_Mem;
-       Addr : System.Address;
-       Size : SizeType)
+      (Self  : in out Refcounted_Mem; Block : NStd.Mem.Block)
    with Inline_Always => True;
 
    procedure Clone_And_Start_Refcounting
-      (Self         : in out Refcounted_Mem;
-       Addr         : System.Address;
-       Size         : SizeType)
+      (Self  : in out Refcounted_Mem; Block : NStd.Mem.Block)
    with Inline_Always => True;
 
    function Slice
@@ -43,8 +56,7 @@ package NStd.Lifecycle is
        Last  : SizeType)
       return Refcounted_Mem;
 
-   function Addr (Self : Refcounted_Mem) return System.Address
-   with Inline_Always => True;
+   function Block (Self : Refcounted_Mem) return NStd.Mem.Block;
 
    function Length (Self : Refcounted_Mem) return SizeType
    with Inline_Always => True;
@@ -62,8 +74,7 @@ package NStd.Lifecycle is
 private
 
    type Refcounted_Mem is record
-      Addr       : System.Address := Null_Address;
-      Length     : SizeType       := 0;
+      Block      : NStd.Mem.Block := NStd.Mem.Empty_Block;
       Counter    : System.Address := Null_Address;
       Block_Addr : System.Address := Null_Address;
    end record
@@ -73,6 +84,6 @@ private
        Relaxed_Finalization => True);
 
    Empty_Refcounted_Mem : constant Refcounted_Mem :=
-      (Null_Address, 0, Null_Address, Null_Address);
+      (Empty_Block, Null_Address, Null_Address);
 
 end NStd.Lifecycle;

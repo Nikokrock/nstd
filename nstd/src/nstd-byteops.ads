@@ -8,8 +8,8 @@
 --
 --  Package to manage contiguous array of bytes.
 
+with System; use System;
 with Ada.Strings.Unbounded;
-with System;
 with NStd.Lifecycle;
 
 package NStd.ByteOps is
@@ -99,7 +99,6 @@ package NStd.ByteOps is
    --  Mutating or freeing the memory while it is referenced by the Bytes object
    --  will result in undefined behavior or program errors.
 
-
    function Parse_C_Literal (Str : String) return Bytes;
    --  Parse a string interpreting C-style escape sequences.
    --
@@ -126,11 +125,11 @@ package NStd.ByteOps is
    --  If N is 0 or the Pattern is empty the result is an empty Bytes object.
 
    function Length (Self : Bytes) return SizeType
-   with Inline => True;
+   with Inline_Always => True;
    --  Return the number of bytes in Self.
 
    function Addr (Self : Bytes) return System.Address
-   with Inline => True;
+   with Inline_Always => True;
    --  Return the address of the data held by Bytes.
    --
    --  The associated memory region should not be mutated, as Bytes is designed
@@ -255,6 +254,13 @@ package NStd.ByteOps is
    --  errors. The main usage is to iterate on a Bytes object without the
    --  overhead of bounds checking on each iteration.
 
+   function Concat (B1, B2 : Bytes) return Bytes;
+   function "&" (B1, B2 : Bytes) return Bytes renames Concat;
+   --  Concatenate two bytes object. If one of the object is empty a reference
+   --  to the other one is returned. If you need to do an undefinite number of
+   --  of concatenation, probably using a MutableBytes object and then
+   --  converting it to Bytes is a better approach.
+
    --------------------------
    -- Operations on Cursor --
    --------------------------
@@ -271,11 +277,8 @@ package NStd.ByteOps is
    function Has_Element (Self : Bytes; C : Cursor) return Boolean
    with Inline_Always => True;
 
-   function UTF8_Next (Self : Bytes; C : Cursor) return Cursor
-   with Inline => True;
-
-   function UTF8_Get (Self : Bytes; C : in out Cursor) return UInt32
-   with Inline_Always => True;
+   function Slice
+      (Self : Bytes; C : in out Cursor; Length : SizeType) return Bytes;
 
    -------------------
    -- Line Iterator --
@@ -300,6 +303,34 @@ package NStd.ByteOps is
 
    function Has_Line (Self : Line_Iterator; C : Line_Cursor) return Boolean;
 
+   ------------------------
+   -- Character Iterator --
+   ------------------------
+
+   type Character_Iterator is private
+   with Iterable => (First       => First_Char,
+                     Next        => Next_Char,
+                     Has_Element => Has_Char,
+                     Element     => Unsafe_Get_Char);
+
+   type Character_Cursor is private;
+   --  Wrapper around bytes that allows iteration on characters rather than
+   --  bytes
+
+   function Chars (Self : Bytes) return Character_Iterator;
+
+   function First_Char (Self : Character_Iterator) return Character_Cursor;
+
+   function Unsafe_Get_Char
+      (Self : Character_Iterator; C : Character_Cursor) return Character;
+
+   function Next_Char
+      (Self : Character_Iterator; C : Character_Cursor) return Character_Cursor;
+
+   function Has_Char
+      (Self : Character_Iterator; C : Character_Cursor) return Boolean;
+
+
 private
 
    type Bytes is record
@@ -311,7 +342,12 @@ private
    Empty_Bytes : constant Bytes :=
       (Content => NStd.Lifecycle.Empty_Refcounted_Mem);
 
-   type Cursor is new SizeType;
+   type Cursor is record
+      Current : Address;
+      Last    : Address;
+   end record;
+   --  ??? Change cursor type to an address to simplify arithmetic during
+   --  loops
 
    type Line_Cursor is record
       First : SizeType := 0;
@@ -319,6 +355,14 @@ private
    end record;
 
    type Line_Iterator is record
+      Content : Bytes;
+   end record;
+
+   type Character_Cursor is record
+      C : Cursor;
+   end record;
+
+   type Character_Iterator is record
       Content : Bytes;
    end record;
 

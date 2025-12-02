@@ -10,13 +10,10 @@ with NStd.ASCII;
 pragma Warnings(Off);
 with Ada.Strings.Unbounded.Aux;
 with NStd.MutableByteOps;
+with NStd.Mem; use NStd.Mem;
 pragma Warnings(On);
 
 package body NStd.ByteOps is
-
-   function memchr(self: Bytes; b: Byte; index: SizeType:=0) return SizeType;
-   -- Binding to memchr C function. If a character is not found then
-   -- SizeType'Last is returned.
 
    -- Init --
 
@@ -26,7 +23,7 @@ package body NStd.ByteOps is
       return Result: Bytes do
          if Str'Length > 0 then
             NStd.Lifecycle.Clone_And_Start_Refcounting
-               (Result.Content, Unsafe.Reference (Str), Str'Length);
+               (Result.Content, Ref (Str));
          end if;
       end return;
    end Clone;
@@ -44,8 +41,7 @@ package body NStd.ByteOps is
          if Str_Length > 0 then
             NStd.Lifecycle.Clone_And_Start_Refcounting
                (Result.Content,
-                Str_Access(1)'Address,
-                SizeType (Str_Length));
+                (Str_Access(1)'Address, SizeType (Str_Length)));
          end if;
       end return;
    end Clone;
@@ -78,13 +74,15 @@ package body NStd.ByteOps is
                end loop;
 
                if Allocated < Final_Length then
-                  NStd.Unsafe.Copy (Final_Addr, Final_Addr + Allocated, Final_Length - Allocated);
+                  NStd.Unsafe.Copy
+                     (Final_Addr,
+                      Final_Addr + Allocated,
+                      Final_Length - Allocated);
                end if;
 
                NStd.Lifecycle.Start_Refcounting
                   (Result.Content,
-                   Final_Addr,
-                   Final_Length);
+                   (Final_Addr, Final_Length));
             end if;
          end;
 
@@ -162,7 +160,7 @@ package body NStd.ByteOps is
    begin
       return Result : Bytes do
          if Length > 0 then
-            NStd.Lifecycle.Start_Refcounting (Result.Content, Addr, Length);
+            NStd.Lifecycle.Start_Refcounting (Result.Content, (Addr, Length));
          end if;
       end return;
    end Acquire;
@@ -172,7 +170,7 @@ package body NStd.ByteOps is
    begin
       return Result : Bytes do
          if Length > 0 then
-            NStd.Lifecycle.Start_Reference (Result.Content, Addr, Length);
+            NStd.Lifecycle.Start_Reference (Result.Content, (Addr, Length));
          end if;
       end return;
    end Reference;
@@ -196,11 +194,9 @@ package body NStd.ByteOps is
    is
    begin
       return Result: Bytes do
-         if NStd.Lifecycle.Length (Self.Content) > 0 then
+         if NStd.Lifecycle.Block (Self.Content).Length > 0 then
             NStd.Lifecycle.Clone_And_Start_Refcounting
-               (Result.Content,
-                NStd.Lifecycle.Addr (Self.Content),
-                NStd.Lifecycle.Length (Self.Content));
+               (Result.Content, NStd.Lifecycle.Block (Self.Content));
          end if;
       end return;
    end Clone;
@@ -209,12 +205,14 @@ package body NStd.ByteOps is
 
    function Length (Self : Bytes) return SizeType is
    begin
-      return NStd.Lifecycle.Length (Self.Content);
+      return NStd.Lifecycle.Block (Self.Content).Length;
    end Length;
+
+   -- Addr --
 
    function Addr (Self : Bytes) return System.Address is
    begin
-      return NStd.Lifecycle.Addr (Self.Content);
+      return NStd.Lifecycle.Block (Self.Content).Addr;
    end Addr;
 
    -- Starts_With --
@@ -223,10 +221,10 @@ package body NStd.ByteOps is
    is
    begin
       return Unsafe.Starts_With
-         (Self   => NStd.Lifecycle.Addr (Self.Content),
-          Length => NStd.Lifecycle.Length (Self.Content),
-          Prefix => NStd.Lifecycle.Addr (Prefix.Content),
-          Prefix_Length => NStd.Lifecycle.Length (Prefix.Content));
+         (Self   => NStd.Lifecycle.Block (Self.Content).Addr,
+          Length => NStd.Lifecycle.Block (Self.Content).Length,
+          Prefix => NStd.Lifecycle.Block (Prefix.Content).Addr,
+          Prefix_Length => NStd.Lifecycle.Block (Prefix.Content).Length);
    end Starts_With;
 
    function Starts_With (Self : Bytes; Prefix : String) return Boolean
@@ -234,11 +232,11 @@ package body NStd.ByteOps is
    begin
       if Prefix'Length = 0 then
          return True;
-      elsif NStd.Lifecycle.Length (Self.Content) < Prefix'Length then
+      elsif Length (Self) < Prefix'Length then
          return False;
       else
          return NStd.Memory.Memcmp
-            (Dst    => NStd.Lifecycle.Addr (Self.Content),
+            (Dst    => Addr (Self),
              Src    => Unsafe.Reference (Prefix),
              Length => Prefix'Length) = 0;
       end if;
@@ -249,17 +247,15 @@ package body NStd.ByteOps is
    function Ends_With (Self : Bytes; Suffix : Bytes) return Boolean
    is
    begin
-      if NStd.Lifecycle.Length (Suffix.Content) = 0 then
+      if Length (Suffix) = 0 then
          return True;
-      elsif NStd.Lifecycle.Length (Self.Content) < NStd.Lifecycle.Length (Suffix.Content) then
+      elsif Length (Self) < Length (Suffix) then
          return False;
       else
          return NStd.Memory.Memcmp
-            (Dst    => Unsafe.Addr
-               (NStd.Lifecycle.Addr (Self.Content),
-                NStd.Lifecycle.Length (Self.Content) - NStd.Lifecycle.Length (Suffix.Content)),
-             Src    => NStd.Lifecycle.Addr (Suffix.Content),
-             Length => NStd.Lifecycle.Length (Suffix.Content)) = 0;
+            (Dst    => Addr (Self) + (Length (Self) - Length (Suffix)),
+             Src    => Addr (Suffix),
+             Length => Length (Suffix)) = 0;
       end if;
    end Ends_With;
 
@@ -268,13 +264,13 @@ package body NStd.ByteOps is
    begin
       if Suffix'Length = 0 then
          return True;
-      elsif NStd.Lifecycle.Length (Self.Content) < Suffix'Length then
+
+      elsif Length (Self) < Suffix'Length then
          return False;
+
       else
          return NStd.Memory.Memcmp
-            (Dst    => Unsafe.Addr
-               (NStd.Lifecycle.Addr (Self.Content),
-                NStd.Lifecycle.Length (Self.Content) - Suffix'Length),
+            (Dst    => Addr (Self) + (Length (Self) - Suffix'Length),
              Src    => Unsafe.Reference (Suffix),
              Length => Suffix'Length) = 0;
       end if;
@@ -282,19 +278,17 @@ package body NStd.ByteOps is
 
    function "=" (Left : Bytes; Right : Bytes) return Boolean is
    begin
-      return Unsafe.Is_Equal
-         (NStd.Lifecycle.Addr (Left.Content),
-          NStd.Lifecycle.Addr (Right.Content),
-          NStd.Lifecycle.Length (Left.Content),
-          NStd.Lifecycle.Length (Right.Content));
+      return Is_Content_Equal
+         (NStd.Lifecycle.Block (Left.Content),
+          NStd.Lifecycle.Block (Right.Content));
    end "=";
 
    function "=" (Left : Bytes; Right : String) return Boolean is
    begin
       return Unsafe.Is_Equal
-         (NStd.Lifecycle.Addr (Left.Content),
+         (NStd.Lifecycle.Block (Left.Content).Addr,
           Unsafe.Reference (Right),
-          NStd.Lifecycle.Length (Left.Content),
+          NStd.Lifecycle.Block (Left.Content).Length,
           SizeType (Right'Length));
    end "=";
 
@@ -320,13 +314,13 @@ package body NStd.ByteOps is
 
    function Trim (Self : Bytes) return Bytes is
    begin
-      if NStd.Lifecycle.Length (Self.Content) = 0 then
+      if Length (Self) = 0 then
          return Self;
       end if;
 
       declare
-         Start_Idx : SizeType := NStd.Lifecycle.Length (Self.Content);
-         End_Idx   : SizeType := NStd.Lifecycle.Length (Self.Content);
+         Start_Idx : SizeType := NStd.Lifecycle.Block (Self.Content).Length;
+         End_Idx   : SizeType := NStd.Lifecycle.Block (Self.Content).Length;
       begin
          for Idx in 0 .. End_Idx - 1 loop
             if not NStd.ASCII.Is_ASCII_Whitespace (Unsafe_Get (Self, Idx)) then
@@ -335,7 +329,7 @@ package body NStd.ByteOps is
             end if;
          end loop;
 
-         for Idx in reverse Start_Idx + 1 .. NStd.Lifecycle.Length (Self.Content) loop
+         for Idx in reverse Start_Idx + 1 .. NStd.Lifecycle.Block (Self.Content).Length loop
             if not NStd.ASCII.Is_ASCII_Whitespace (Unsafe_Get (Self, Idx - 1)) then
                End_Idx := Idx;
                exit;
@@ -348,34 +342,34 @@ package body NStd.ByteOps is
 
    function Trim_Leading (Self : Bytes) return Bytes is
    begin
-      if NStd.Lifecycle.Length (Self.Content) = 0 then
+      if Length (Self) = 0 then
          return Self;
       end if;
 
       declare
-         Start_Idx : SizeType := NStd.Lifecycle.Length (Self.Content);
+         Start_Idx : SizeType := Length (Self);
       begin
-         for Idx in 0 .. NStd.Lifecycle.Length (Self.Content) - 1 loop
+         for Idx in 0 .. Length (Self) - 1 loop
             if not NStd.ASCII.Is_ASCII_Whitespace (Unsafe_Get (Self, Idx)) then
                Start_Idx := Idx;
                exit;
             end if;
          end loop;
 
-         return Slice (Self, Start_Idx, NStd.Lifecycle.Length (Self.Content));
+         return Slice (Self, Start_Idx, Length (Self));
       end;
    end Trim_Leading;
 
    function Trim_Trailing (Self : Bytes) return Bytes is
    begin
-      if NStd.Lifecycle.Length (Self.Content) = 0 then
+      if Length (Self) = 0 then
          return Self;
       end if;
 
       declare
          End_Idx : SizeType := 0;
       begin
-         for Idx in reverse 1 .. NStd.Lifecycle.Length (Self.Content) loop
+         for Idx in reverse 1 .. Length (Self) loop
             if not NStd.ASCII.Is_ASCII_Whitespace (Unsafe_Get (Self, Idx - 1)) then
                End_Idx := Idx;
                exit;
@@ -390,8 +384,8 @@ package body NStd.ByteOps is
    is
       pragma Suppress(All_Checks);
    begin
-      if Index < NStd.Lifecycle.Length (Self.Content) then
-         return Unsafe.Get (NStd.Lifecycle.Addr (Self.Content), Index);
+      if Index < Length (Self) then
+         return Unsafe.Get (Addr (Self), Index);
       else
          raise Constraint_Error with "element" & Index'Img;
       end if;
@@ -406,106 +400,109 @@ package body NStd.ByteOps is
    is
       pragma Suppress(All_Checks);
    begin
-      return Unsafe.Get (NStd.Lifecycle.Addr (Self.Content), Index);
+      return Unsafe.Get (Addr (Self), Index);
    end unsafe_get;
 
-   function First (Self: Bytes) return Cursor is
-      pragma Unreferenced (Self);
+   function Concat (B1, B2 : Bytes) return Bytes is
    begin
-      return Cursor (0);
+      if Length (B1) = 0 then
+         return B2;
+      elsif Length (B2) = 0 then
+         return B1;
+      else
+         return Result: Bytes do
+            declare
+               B : Block := Allocate (Length (B1) + Length (B2));
+            begin
+               NStd.Unsafe.Copy (Addr (B1), B.Addr, Length (B1));
+               NStd.Unsafe.Copy (Addr (B2), B.Addr + Length (B1), Length (B2));
+               NStd.Lifecycle.Start_Refcounting (Result.Content, B);
+            end;
+         end return;
+      end if;
+   end Concat;
+
+   function First (Self: Bytes) return Cursor is
+   begin
+      return (Addr (Self), Addr (Self) + Length (Self));
    end First;
 
    function Unsafe_Get (Self : Bytes; C : Cursor) return Byte
    is
       pragma Suppress(All_Checks);
+      pragma Unreferenced (Self);
    begin
-      return Unsafe.Get (NStd.Lifecycle.Addr (Self.Content), SizeType (C));
+      return Unsafe.Get (C.Current, 0);
    end Unsafe_Get;
 
    function Next (Self : Bytes; C : Cursor) return Cursor is
       pragma Suppress (All_Checks);
       pragma Unreferenced (Self);
    begin
-      return C + 1;
+      return (C.Current + 1, C.Last);
    end;
 
    function Has_Element (Self : Bytes; C : Cursor) return Boolean is
       pragma Suppress (All_Checks);
+      pragma Unreferenced (Self);
    begin
-      return SizeType (C) < NStd.Lifecycle.Length (Self.Content);
+      return C.Current < C.Last;
    end Has_Element;
 
-   function UTF8_Next (Self : Bytes; C : Cursor) return Cursor
-   is
-      pragma Suppress(All_Checks);
+   function Slice
+      (Self : Bytes; C : in out Cursor; Length : SizeType) return Bytes is
    begin
-      return Cursor
-         (Unsafe.Next_UTF8_Offset (NStd.Lifecycle.Addr (Self.Content), SizeType (C), NStd.Lifecycle.Length (Self.Content)));
-   end UTF8_Next;
-
-   function UTF8_Get (Self : Bytes; C : in out Cursor) return UInt32 is
-   begin
-      return Unsafe.Get_UTF8 (NStd.Lifecycle.Addr (Self.Content), SizeType (C), NStd.Lifecycle.Length (Self.Content));
-   end UTF8_Get;
-
-   function memchr(self: Bytes; b: Byte; index: SizeType:=0) return SizeType is
-
-      function internal
-         (addr: System.Address; i: Integer; size: SizeType) return System.Address;
-      pragma Import(C, internal, "memchr");
-
-      result: System.Address;
-      use all type System.Address;
-   begin
-      result := internal
-         (Unsafe.Addr (NStd.Lifecycle.Addr (Self.Content), index),
-          Integer(b),
-          NStd.Lifecycle.Length (Self.Content) - index);
-      if result = System.Null_Address then
-         return SizeType'Last;
-      end if;
-
-      return Unsafe.Offset (Result, NStd.Lifecycle.Addr (Self.Content));
-   end memchr;
+      return Slice
+         (Self, C.Current - Addr (Self), C.Current - Addr (Self) + Length);
+   end Slice;
 
    function Find (Self : Bytes; B : Byte; Index : SizeType:=0) return SizeType
    is
       pragma Suppress(All_Checks);
-   begin
-      if NStd.Lifecycle.Length (Self.Content) = 0 then
-         return SizeType'Last;
-      else
-         -- This probably deserves a modern implementation that takes advantage
-         -- of SSE, Neon or other SIMD extensions. In the meantime probe using
-         -- naive approach for at most 16 characters and if the byte is not
-         -- found delegate to memchr which is faster when byte frequency is not
-         -- too high.
-         declare
-            last_searched: constant SizeType := min
-               (NStd.Lifecycle.Length (Self.Content) - 1, index + 16);
-         begin
-            -- Naive search is faster when frequency is high
-            for idx in index .. last_searched loop
-               if Unsafe.Get(NStd.Lifecycle.Addr (Self.Content), idx) = b then
-                  return idx;
-               end if;
-            end loop;
 
-            -- Character is not in the first 16, delegate to memchr based
-            -- search
-            if last_searched < NStd.Lifecycle.Length (Self.Content) - 1 then
-               return memchr(self, b => b, index => last_searched + 1);
-            else
-               return Not_Found;
-            end if;
-         end;
+      function Internal_Find
+         (C_Start : Address;
+          C_End   : Address;
+          B       : Byte) return Address
+      with Import        => True,
+           Convention    => CPP,
+           External_Name => "_ZN7simdutf4findEPKcS1_c";
+
+   begin
+      if Length (Self) = 0 then
+         return SizeType'Last;
       end if;
+
+      declare
+         C_Begin : constant Address := Addr (Self);
+         C_Start : constant Address := C_Begin + Index;
+         C_End   : constant Address := C_Begin + Length (Self);
+         Result_Address : constant Address := Internal_Find (C_Start, C_End, B);
+         Result_Offset : constant SizeType :=
+            NStd.Unsafe.Offset (Result_Address, C_Begin);
+      begin
+         if Result_Offset >= Length (Self) then
+            return SizeType'Last;
+         else
+            return Result_Offset;
+         end if;
+      end;
    end Find;
 
    function Find
       (Self : Bytes; Pattern : Bytes; Index : SizeType := 0) return SizeType
    is
+      C_Begin : constant Address := Addr (Self);
+      C_Start : constant Address := C_Begin + Index;
+      C_Length : constant SizeType := Length (Self) - Index;
+
+      P_Start : constant Address := Addr (Pattern);
+      P_Length : constant SizeType := Length (Pattern);
    begin
+      if Length (Pattern) = 0 or else Length (Self) = 0 then
+         return SizeType'Last;
+      end if;
+
       return 0;
    end Find;
 
@@ -514,10 +511,10 @@ package body NStd.ByteOps is
       Result  : SizeType := 0;
       Cindex  : SizeType := Index;
    begin
-      if NStd.Lifecycle.Length (Self.Content) = 0 then
+      if Length (Self) = 0 then
          return 0;
       else
-         while Cindex < NStd.Lifecycle.Length (Self.Content) loop
+         while Cindex < Length (Self) loop
             Cindex := Find (Self, B => B, Index => Cindex);
             exit when Cindex = SizeType'Last;
             Result := Result + 1;
@@ -538,7 +535,7 @@ package body NStd.ByteOps is
          Result.First := 0;
          Result.Last := Find (Self.Content, NStd.ASCII.LF, 0);
          if Result.Last = Not_Found then
-            Result.Last := NStd.Lifecycle.Length (Self.Content.Content);
+            Result.Last := Length (Self.Content);
          end if;
       end return;
    end First_Line;
@@ -556,13 +553,56 @@ package body NStd.ByteOps is
          Result.First := C.Last + 1;
          Result.Last := Find (Self.Content,NStd.ASCII.LF, Result.First);
          if Result.Last = Not_Found then
-            Result.Last := NStd.Lifecycle.Length (Self.Content.Content);
+            Result.Last := Length (Self.Content);
          end if;
       end return;
    end Next_Line;
 
    function Has_Line (Self : Line_Iterator; C : Line_Cursor) return Boolean is
    begin
-      return C.First < NStd.Lifecycle.Length (Self.Content.Content);
+      return C.First < Length (Self.Content);
    end Has_Line;
+
+   -- Chars --
+
+   function Chars (Self : Bytes) return Character_Iterator is
+   begin
+      return (Content => Self);
+   end Chars;
+
+   -- First_Char --
+
+   function First_Char (Self : Character_Iterator) return Character_Cursor
+   is
+   begin
+      return (C => First (Self.Content));
+   end First_Char;
+
+   -- Unsafe_Get_Char --
+
+   function Unsafe_Get_Char
+      (Self : Character_Iterator; C : Character_Cursor) return Character
+   is
+   begin
+      return as_char (Unsafe_Get (Self.Content, C => C.C));
+   end Unsafe_Get_Char;
+
+   -- Next_Char --
+
+   function Next_Char
+      (Self : Character_Iterator; C : Character_Cursor) return Character_Cursor
+   is
+   begin
+      return (C => Next (Self.Content, C.C));
+   end Next_Char;
+
+   -- Has_Char --
+
+   function Has_Char
+      (Self : Character_Iterator; C : Character_Cursor) return Boolean
+   is
+   begin
+      return Has_Element (Self.Content, C.C);
+   end Has_Char;
+
 end NStd.ByteOps;

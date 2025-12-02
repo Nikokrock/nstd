@@ -7,6 +7,8 @@
 with NStd.Memory;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements; use System.Storage_Elements;
+with Interfaces.C;
+with GNAT.IO;
 
 package body NStd.Unsafe is
 
@@ -18,18 +20,12 @@ package body NStd.Unsafe is
    package BufferOps is new System.Address_To_Access_Conversions(Buffer);
    use BufferOps;
 
-   function Next_UTF8_Offset_Internal
-      (Self : Address; Offset : SizeType; Length : SizeType)
-      return SizeType;
-   --  Part of the Next_UTF8_Offset that is not inlined (called each time a
-   --  non ASCII character is found).
-  
    function Get_UTF8_Internal
-      (Self : Address; Offset : in out SizeType; length: SizeType)
-      return UInt32;
-   --  Part of the Get_UTF8 that is not inlined (called each time a
-   --  non ASCII character is found).
-  
+      (Self      : in out Address;
+       First_Byte : UInt32)
+      return UInt32
+   with Inline => False;
+
    procedure Reallocate_And_Copy_Internal
       (Src          : Address;
        Src_Length   : SizeType;
@@ -38,13 +34,13 @@ package body NStd.Unsafe is
        Dst_Length   : in out SizeType);
    --  Part of Reallocate_And_Copy that is not inlined (called each time Dst
    --  needs to be resized).
-  
+
    -- Allocate --
 
    function Allocate (Length : SizeType) return Address is
       Addr   : System.Address;
    begin
-      if Length > ISize'Last - 1 then
+      if Length > SizeType'Last - 2 then
          raise Storage_Error with "allocation length too large";
       end if;
 
@@ -138,7 +134,7 @@ package body NStd.Unsafe is
          Reallocate (Dst, Dst_Length);
       end if;
 
-      Dummy := NStd.Memory.memcpy (Addr (Dst, Dst_Offset),
+      Dummy := NStd.Memory.memcpy (Dst + Dst_Offset,
               Src,
               Src_Length);
 
@@ -155,7 +151,7 @@ package body NStd.Unsafe is
    begin
       if Dst_Length - Dst_Offset >= Src_Length then
          --  A Direct memcpy is possible here. This is the fastest path
-         Dummy := NStd.Memory.memcpy (Addr (Dst, Dst_Offset),
+         Dummy := NStd.Memory.memcpy (Dst + Dst_Offset,
                  Src,
                  Src_Length);
       else
@@ -188,6 +184,7 @@ package body NStd.Unsafe is
    -- Addr --
 
    function Addr (Self : Address; Offset : SizeType) return Address is
+      pragma Suppress (All_Checks);
    begin
       return System.Storage_Elements."+"
          (Self, System.Storage_Elements.Storage_Offset (Offset));
@@ -216,153 +213,62 @@ package body NStd.Unsafe is
       To_Pointer (Self).all (Offset) := b;
    end Set;
 
-   -- Next_UTF8_Offset --
-
-   function Next_UTF8_Offset
-      (Self : Address; Offset : SizeType; Length : SizeType) return SizeType
-   is
-   begin
-      if Offset >= Length then
-         return Offset;
-      else
-         if Get (Self, Offset) <= 16#7F# then
-            return Offset + 1;
-         else
-            return Next_UTF8_Offset_Internal (Self, Offset, Length);
-         end if;
-      end if;
-   end Next_UTF8_Offset;
-
-   function Next_UTF8_Offset_Internal
-      (Self : Address; Offset : SizeType; Length : SizeType)
-      return SizeType
-   is
-      function has_continuation_bytes(num: SizeType) return Boolean;
-      function has_continuation_bytes(num: SizeType) return Boolean
-      is
-      begin
-         if Offset + num >= Length then
-            return False;
-         else
-            for idx in 1 .. num loop
-               if get(self, Offset + idx) <= 16#7F# or else
-                  get(self, Offset + idx) >= 16#C0#
-               then
-                  return False;
-               end if;
-            end loop;
-            return True;
-         end if;
-      end has_continuation_bytes;
-      b : Byte;
-   begin
-      if Offset >= Length then
-         return Offset;
-      else
-         -- Unicode standards now recommends to emit one error per bytes when
-         -- an incomplete/invalid sequence is found. Thus we need to verify
-         -- the complete sequence in order to ensure we can skip some
-         -- bytes. For example E1,A0,20 which is a truncated 3 bytes sequence
-         -- should not cause this function to skip the space character
-         -- following the invalid sequence.
-         b := get(self, Offset);
-         if b <= 16#7F# then
-            -- valid ascii chracter
-            return Offset + 1;
-         elsif b <= 16#BF# then
-            -- unexpected continuation byte should be handled one error and
-            -- thus consumed only one byte
-            return Offset + 1;
-         elsif b <= 16#DF# then
-            -- 2 bytes sequence
-            if has_continuation_bytes(1) then
-               return Offset + 2;
-            else
-               return Offset + 1;
-            end if;
-         elsif b <= 16#EF# then
-            -- 3 bytes sequence
-            if has_continuation_bytes(2) then
-               return Offset + 3;
-            else
-               return Offset + 1;
-            end if;
-         elsif b <= 16#F7# then
-            -- 5 bytes sequence
-            if has_continuation_bytes(3) then
-               return Offset + 4;
-            else
-               return Offset + 1;
-            end if;
-         elsif b <= 16#FB# then
-            -- 5 bytes sequence
-            if has_continuation_bytes(4) then
-               return Offset + 5;
-            else
-               return Offset + 1;
-            end if;
-         elsif b <= 16#FD# then
-            -- 6 bytes sequence
-            if has_continuation_bytes(5) then
-               return Offset + 6;
-            else
-               return Offset + 1;
-            end if;
-         else
-            -- invalid characters FE and FF
-            return Offset + 1;
-         end if;
-      end if;
-   end Next_UTF8_Offset_Internal;
-
    function Get_UTF8_Internal
-      (Self : Address; Offset : in out SizeType; length: SizeType)
+      (Self      : in out Address;
+       First_Byte : UInt32)
       return UInt32
    is
       pragma Suppress(All_Checks);
-      Result : UInt32 := UInt32 (Get (Self, Offset));
+      Result : UInt32 := First_Byte;
 
    begin
-      if (Result and 16#80#) = 0 then
-         Offset := Offset + 1;
-
-      elsif Result < 16#E0# then
+      if Result < 16#E0# then
          Result := Shift_Left (Result and 16#1F#, 6) or
-            (UInt32 (Get (Self, Offset + 1)) and 16#3F#);
-         Offset := Offset + 2;
+            (UInt32 (Get (Self, 1)) and 16#3F#);
+         Self := Addr (Self, 2);
 
       elsif Result < 16#F0# then
          Result := Shift_Left (Result, 12) or
-            (Shift_Left (UInt32 (Get (Self, Offset + 1)) and 16#3F#, 6)) or
-            (UInt32 (Get (Self, Offset + 2)) and 16#3F#);
-         Offset := Offset + 3;
+            (Shift_Left (UInt32 (Get (Self, 1)) and 16#3F#, 6)) or
+            (UInt32 (Get (Self, 2)) and 16#3F#);
+         Self := Addr (Self, 3);
 
       else
          Result := Shift_Left (Result and 16#07#, 18) or
-            (Shift_Left (UInt32 (Get (Self, Offset + 1)) and 16#3F#, 12)) or
-            (Shift_Left (UInt32 (Get (Self, Offset + 2)) and 16#3F#, 6)) or
-            (UInt32 (Get (Self, Offset + 3)) and 16#3F#);
-         Offset := Offset + 4;
+            (Shift_Left (UInt32 (Get (Self, 1)) and 16#3F#, 12)) or
+            (Shift_Left (UInt32 (Get (Self, 2)) and 16#3F#, 6)) or
+            (UInt32 (Get (Self, 3)) and 16#3F#);
+         Self := Addr (Self, 4);
       end if;
 
       return Result;
    end Get_UTF8_Internal;
 
-   function Get_UTF8
-      (Self : Address; Offset : in out SizeType; Length : SizeType)
-      return Uint32
-   is
+   function Get_UTF8 (Self : in out Address) return UInt32 is
       pragma Suppress(All_Checks);
-      binary_char : constant UInt32 := Uint32 (Get (Self, Offset));
+      --  binary_char : constant UInt32 := Uint32 (Get (Self, 0));
+      binary_char : constant Byte := Get (Self, 0);
    begin
       -- fast path for ascii characters
       if binary_char < 128 then
-         Offset := Offset + 1;
-         return binary_char;
+         Self := Addr (Self, 1);
+         return UInt32 (binary_char);
       else
-         return Get_UTF8_Internal (Self, Offset, Length);
+         return Get_UTF8_Internal (Self, UInt32 (Binary_Char));
       end if;
    end Get_UTF8;
+
+   function Validate_UTF8 (Self : Address; Length : SizeType) return Boolean is
+      function Internal
+         (Self : Address;
+          Length : SizeType)
+         return Interfaces.C.C_bool
+      with Import => True,
+           Convention => CPP,
+           External_Name => "_ZN7simdutf13validate_utf8EPKcm";
+   begin
+      return Boolean (Internal (Self, Length));
+   end Validate_UTF8;
 
    -- Reference --
 

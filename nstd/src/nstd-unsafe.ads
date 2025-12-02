@@ -70,9 +70,9 @@ package NStd.Unsafe is
       return Boolean
    with Inline => True;
    --  Compare two memory regions and return True if they are equal
-   
-   function Addr (Self : Address; Offset : IndexType) return Address
-   with Inline => True;
+
+   --  function Addr (Self : Address; Offset : IndexType) return Address
+   --  with Inline_Always => True;
    --  Return Address at Self + Offset
 
    function Offset (Self : Address; Origin: Address) return IndexType
@@ -93,17 +93,11 @@ package NStd.Unsafe is
    -- UTF-8 functions --
    ---------------------
 
-   function Next_UTF8_Offset
-      (Self   : Address;
-       Offset : SizeType;
-       Length : SizeType)
-      return SizeType
+   function Get_UTF8 (Self : in out Address) return UInt32
    with Inline => True;
 
-   function Get_UTF8
-      (Self : Address; Offset : in out SizeType; Length : SizeType)
-      return Uint32
-   with Inline => True;
+   function Validate_UTF8 (Self : Address; Length : SizeType) return Boolean
+   with Inline_Always => True;
 
    ----------
    -- Misc --

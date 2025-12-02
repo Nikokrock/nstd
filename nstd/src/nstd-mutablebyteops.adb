@@ -133,7 +133,7 @@ package body NStd.MutableByteOps is
          Result : String (1 .. Integer (Last - First));
       begin
          Unsafe.Copy
-            (Unsafe.Addr (Self.Content.Addr, First),
+            (Self.Content.Addr + First,
              Unsafe.Reference (Result),
              Last - First);
          return Result;

@@ -6,6 +6,7 @@
 
 with NStd.ByteOps;
 with Ada.Strings.Unbounded;
+with System; use System;
 
 package NStd.StrOps is
 
@@ -27,6 +28,12 @@ package NStd.StrOps is
    function Clone (Self : Str) return Str
    with Inline => True;
    --  Create a complete copy (including buffer) of a Str.
+
+   function "*" (Pattern : Str; N : SizeType) return Str
+   with Inline_Always => True;
+   --  Repeat a pattern N times.
+   --
+   --  If N is 0 or the Pattern is empty the result is an empty Str object.
 
    function Reference (Addr : System.Address; Length : SizeType) return Str
    with Inline => True;
@@ -88,13 +95,13 @@ package NStd.StrOps is
    with Inline => True;
 
    function Next (Self: Str; N: Cursor) return Cursor
-   with Inline => True;
+   with Inline_Always => True;
 
    function Has_Element (Self: Str; n: Cursor) return Boolean
-   with Inline => True;
+   with Inline_Always => True;
 
    function Unsafe_Get(Self: Str; N: Cursor) return Uint32
-   with Inline => True;
+   with Inline_Always => True;
 
    function Slice (Self : Str; First, Last : SizeType) return Str
    with Inline => True;
@@ -111,8 +118,8 @@ private
    Empty_Str : constant Str := (Content => NStd.Byteops.Empty_Bytes);
 
    type Cursor is record
-      Offset     : NStd.ByteOps.Cursor;
-      NextOffset : NStd.ByteOps.Cursor;
+      Addr       : Address;
+      Addr_Limit : Address;
       CodePoint  : UInt32;
    end record;
    -- Implementation note: have the next offset ready along with the codepoint

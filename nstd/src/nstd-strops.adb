@@ -4,6 +4,8 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
 
+with NStd.Unsafe;
+
 package body NStd.StrOps is
 
    function Clone (S: String) return Str
@@ -37,6 +39,11 @@ package body NStd.StrOps is
    begin
       return (Content => NStd.Byteops.Clone (S));
    end Clone;
+
+   function "*" (Pattern : Str; N : SizeType) return Str is
+   begin
+      return (Content => NStd.Byteops."*" (Pattern.Content, N));
+   end "*";
 
    function Reference (Addr : System.Address; Length : SizeType) return Str
    is
@@ -91,10 +98,12 @@ package body NStd.StrOps is
       pragma Suppress (All_Checks);
       C : Cursor;
    begin
-      C.Offset := NStd.Byteops.First (Self.Content);
-      C.NextOffset := C.Offset;
-      if NStd.Byteops.Has_Element (Self.Content, C.Offset) then
-         C.CodePoint := NStd.Byteops.UTF8_Get (Self.Content, C.NextOffset);
+      if Byte_Length (Self) = 0 then
+         C := (Null_Address, Null_Address, 0);
+      else
+         C.Addr := Addr (Self);
+         C.Addr_Limit := Addr (Self) + Byte_Length (Self);
+         C.Codepoint := NStd.Unsafe.Get_UTF8 (C.Addr);
       end if;
 
       return C;
@@ -103,12 +112,15 @@ package body NStd.StrOps is
    function Next(self: Str; N: Cursor) return Cursor
    is
       pragma Suppress (All_Checks);
+      pragma Unreferenced (Self);
       Result : Cursor;
    begin
-      Result.Offset := N.NextOffset;
-      Result.NextOffset := N.NextOffset;
-      if NStd.Byteops.Has_Element (Self.Content, N.NextOffset) then
-         Result.Codepoint := NStd.Byteops.UTF8_Get (Self.Content, Result.NextOffset);
+      if N.Addr >= N.Addr_Limit then
+         Result := (Null_Address, Null_Address, 0);
+      else
+         Result.Addr := N.Addr;
+         Result.Addr_Limit := N.Addr_Limit;
+         Result.Codepoint := NStd.Unsafe.Get_UTF8 (Result.Addr);
       end if;
       return Result;
    end Next;
@@ -117,9 +129,8 @@ package body NStd.StrOps is
    is
       pragma Suppress (All_Checks);
       pragma Unreferenced (Self);
-      use all type NStd.Byteops.Cursor;
    begin
-      return N.Offset /= N.NextOffset;
+      return N.Addr /= Null_Address;
    end Has_Element;
 
    function Unsafe_get(self: Str; n: Cursor) return Uint32
