@@ -95,7 +95,7 @@ def gprbuild(
             "gnatcov",
             "instrument",
             "--level",
-            "stmt+decision",
+            "stmt+mcdc",
             "--relocate-build-tree",
             "--dump-trigger=atexit",
             "--projects",

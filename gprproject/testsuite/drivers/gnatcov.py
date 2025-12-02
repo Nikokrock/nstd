@@ -12,7 +12,7 @@ from e3.os.process import Run
 from . import bin_check_call
 
 
-COVERAGE_LEVEL = "stmt+decision"
+COVERAGE_LEVEL = "stmt+mcdc"
 
 
 def list_to_file(str_list, filename):
