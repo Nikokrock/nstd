@@ -43,8 +43,8 @@ library project NStd is
    Malloc := External
       ("NSTD_MALLOC", NStd_Constants.NSTD_MALLOC_DEFAULT);
 
-   Project_Languages := ("Ada", "C");
-   Sources := ("src");
+   Project_Languages := ("Ada", "C", "C++");
+   Sources := ("src", "src/simdutf");
 
    for Languages use Project_Languages;
 
@@ -113,9 +113,13 @@ library project NStd is
              for Switches ("C") use ("-g", "-O0", "-Wunreachable-code");
 
           when "PROD" =>
-             --  Enable optimisation and inlining. Do not treat warnings as errors
-             for Switches ("Ada") use ("-O3", "-gnatn2", "-gnatwa");
+             --  Enable optimisation and inlining. Do not treat warnings as
+             --  errors.
+             --  Note that -O3 is not used for Ada packages as it might leads to
+             --  inlining of functions that should not be inlined.
+             for Switches ("Ada") use ("-O2", "-gnatn", "-gnatwa");
              for Switches ("C") use ("-O2", "-Wunreachable-code", "-DMI_BUILD_RELEASE=1");
+             for Switches ("C++") use ("-O3");
        end case;
     end Compiler;
 
