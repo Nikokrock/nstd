@@ -42,15 +42,19 @@ package NStd is
 
    function As_Char (B: Byte) return Character
    with Inline => True;
+   --  Return the character corresponding to Byte B
 
    function As_Byte (C : Character) return Byte
    with Inline_Always => True;
+   --  Return the Byte corresponding to Character C
 
    function Min (S1, S2: SizeType) return SizeType
    with Inline => True;
+   --  Return the Min between S1 and S2
 
    function "=" (B : Byte; C : Character) return Boolean
    with Inline_Always => True;
+   --  Return True if C'Pos is equal to B
 
    function Hex (U : UInt64) return String;
    --  Return the hexadecimal representation of an UInt64
