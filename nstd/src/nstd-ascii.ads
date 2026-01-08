@@ -5,6 +5,8 @@
 --
 
 package NStd.ASCII is
+
+   NUL   : constant := 16#00#;
    BEL   : constant := 16#07#;
    BS    : constant := 16#08#;
    HT    : constant := 16#09#;
