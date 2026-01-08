@@ -52,5 +52,10 @@ package NStd is
    function "=" (B : Byte; C : Character) return Boolean
    with Inline_Always => True;
 
-   function As_String (U : UInt64) return String;
+   function Hex (U : UInt64) return String;
+   --  Return the hexadecimal representation of an UInt64
+
+   function Hex (B : Byte) return String;
+   --  Return the hexadecimal representation of a Byte
+
 end NStd;

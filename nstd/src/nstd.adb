@@ -16,16 +16,6 @@ package body NStd is
       return Character'Val (B);
    end as_char;
 
-   function As_String (U : UInt64) return String is
-      S  : String (1 .. 16);
-   begin
-      for Idx in 1 .. 16 loop
-         S (Idx) := Hex_Value (Integer (Shift_Right (U, (16 - Idx) * 4) and 16#F#));
-      end loop;
-
-      return S;
-   end As_String;
-
    function As_Byte (C : Character) return Byte
    is
    begin
@@ -45,5 +35,29 @@ package body NStd is
    begin
       return B = As_Byte (C);
    end "=";
+
+   -- Hex --
+
+   function Hex (U : UInt64) return String is
+      S  : String (1 .. 16);
+   begin
+      for Idx in 1 .. 16 loop
+         S (Idx) := Hex_Value
+            (Integer (Shift_Right (U, (16 - Idx) * 4) and 16#F#));
+      end loop;
+
+      return S;
+   end Hex;
+
+   function Hex (B : Byte) return String is
+      S : String (1 .. 2);
+   begin
+      for Idx in 1 .. 2 loop
+         S (Idx) := Hex_Value
+            (Integer (Shift_Right (B, (2 - Idx) * 4) and 16#F#));
+      end loop;
+
+      return S;
+   end Hex;
 
 end NStd;
