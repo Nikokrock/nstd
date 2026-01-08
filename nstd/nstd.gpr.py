@@ -11,6 +11,7 @@ REPO_DIR = os.path.dirname(SOURCE_DIR)
 sys.path.insert(0, REPO_DIR)
 
 from gprproject import BuilderApp
+from gprproject.version import get_current_version
 
 if TYPE_CHECKING:
     import argparse
@@ -30,8 +31,7 @@ class std(BuilderApp):
         parser.add_argument("--malloc", choices=["mimalloc", "malloc"], default="malloc")
 
     def adjust_config(self, gpr: GPRTool, args: argparse.Namespace) -> None:
-        with open(os.path.join(SOURCE_DIR, "VERSION")) as fd:
-            version = fd.read().strip()
+        version = get_current_version(os.path.join(SOURCE_DIR, "VERSION"))
         gpr.set_variable("NSTD_VERSION", version)
 
         if "windows" in gpr.target:
