@@ -412,7 +412,7 @@ package body NStd.ByteOps is
       else
          return Result: Bytes do
             declare
-               B : Block := Allocate (Length (B1) + Length (B2));
+               B : constant Block := Allocate (Length (B1) + Length (B2));
             begin
                NStd.Unsafe.Copy (Addr (B1), B.Addr, Length (B1));
                NStd.Unsafe.Copy (Addr (B2), B.Addr + Length (B1), Length (B2));
@@ -455,6 +455,24 @@ package body NStd.ByteOps is
       return Slice
          (Self, C.Current - Addr (Self), C.Current - Addr (Self) + Length);
    end Slice;
+
+   function Unsafe_Get_UInt64 (Self : Bytes; C : in out Cursor) return UInt64
+   is
+      Result : UInt64;
+      for Result'Address use C.Current;
+   begin
+      C.Current := C.Current + 8;
+      return Result;
+   end Unsafe_Get_UInt64;
+
+   function Unsafe_Get_UInt32 (Self : Bytes; C : in out Cursor) return UInt32
+   is
+      Result : UInt32;
+      for Result'Address use C.Current;
+   begin
+      C.Current := C.Current + 4;
+      return Result;
+   end Unsafe_Get_UInt32;
 
    function Find (Self : Bytes; B : Byte; Index : SizeType:=0) return SizeType
    is
@@ -605,4 +623,15 @@ package body NStd.ByteOps is
       return Has_Element (Self.Content, C.C);
    end Has_Char;
 
+   function Hex (Self : Bytes) return String is
+      S : String (1 .. Integer (Length (Self) * 3));
+   begin
+      for I in 0 .. Length (Self) - 1 loop
+         S (Integer (I * 3) + 1) := ' ';
+         S (Integer (I * 3 + 2) .. Integer (I * 3 + 3)) :=
+            Hex (Unsafe_Get (Self, I));
+      end loop;
+
+      return S;
+   end Hex;
 end NStd.ByteOps;

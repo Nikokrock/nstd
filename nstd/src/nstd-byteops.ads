@@ -281,6 +281,10 @@ package NStd.ByteOps is
    function Slice
       (Self : Bytes; C : in out Cursor; Length : SizeType) return Bytes;
 
+   function Unsafe_Get_UInt64 (Self : Bytes; C : in out Cursor) return UInt64;
+
+   function Unsafe_Get_UInt32 (Self : Bytes; C : in out Cursor) return UInt32;
+
    -------------------
    -- Line Iterator --
    -------------------
@@ -331,6 +335,7 @@ package NStd.ByteOps is
    function Has_Char
       (Self : Character_Iterator; C : Character_Cursor) return Boolean;
 
+   function Hex (Self : Bytes) return String;
 
 private
 
