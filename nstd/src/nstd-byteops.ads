@@ -78,10 +78,11 @@ package NStd.ByteOps is
    --  result in undefined behavior or program errors, as the Bytes container
    --  expects exclusive control and lifetime management of the memory block.
 
-   function Reference (Addr : System.Address; Length : SizeType) return Bytes;
+   function Reference
+      (Addr : System.Address; Length : SizeType) return Bytes;
    --  Make a reference to a memory region that is not managed by the Bytes
-   --  container. Note that contrary to other Bytes objects, an assignment will
-   --  cause the reference data to be copied.
+   --  container. Note that contrary to other Bytes objects, an assignment or
+   --  slicing will cause the reference data to be copied.
    --
    --  The caller is responsible for ensuring that the referenced memory region
    --  remains valid and unmodified for the lifetime of the Bytes object.
@@ -90,9 +91,9 @@ package NStd.ByteOps is
 
    function Reference (Str : String) return Bytes;
    --  Make a reference to an Ada String. Note that contrary to other Bytes
-   --  objects, an assignment will cause the reference data to be copied. The
-   --  main usage is using Ada Strings as parameter of functions taking Bytes
-   --  without need for a copy.
+   --  objects, an assignment or slicing will cause the reference data to be
+   --  copied. The main usage is using Ada Strings as parameter of functions
+   --  taking Bytes without need for a copy.
    --
    --  The caller is responsible for ensuring that the referenced memory region
    --  remains valid and unmodified for the lifetime of the Bytes object.
