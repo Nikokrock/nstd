@@ -1,0 +1,20 @@
+name = "nstd"
+description = "Non-Standard Libraries"
+version = "0.1.0-dev"
+
+authors = ["Nicolas Roche"]
+maintainers = ["Nicolas Roche <example@example.com>"]
+maintainers-logins = ["nikokrock"]
+licenses = "Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = ["strings", "utf-8", "unicode"]
+
+[[actions]]
+[actions.'case(os)'.windows]
+
+type="pre-build"
+command=["python.exe", "./nstd.gpr.py", "build", "--configure-only", "--enable-constant-updates"]
+
+[actions.'case(os)'.'...']
+type="pre-build"
+command=["python3", "./nstd.gpr.py", "build", "--configure-only", "--enable-constant-updates"]
