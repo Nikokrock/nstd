@@ -8,7 +8,6 @@ with NStd.Memory;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements; use System.Storage_Elements;
 with Interfaces.C;
-with GNAT.IO;
 
 package body NStd.Unsafe is
 
