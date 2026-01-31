@@ -49,87 +49,14 @@ begin
    declare
       use NStd.Byteops;
       use all type NStd.UInt8;
-      S : constant Bytes := Clone ("abc") * 100_000_000;
+      S : constant Bytes := Parse_C_Literal
+         ("a\xC5\x80\xE2\x82\xAC\xF0\x92\x82\xAC");
       S_Addr : System.Address := Addr (S);
-      S_Offset : NStd.SizeType := 0;
-      Counter : Integer := 0;
    begin
-      M.Start_Measure;
-      for C of S loop
-         if C = 97 then
-            Counter := Counter + 1;
-         end if;
-      end loop;
-      M.End_Measure;
-      M.Display_Measure ("byte iterator");
-      A.Assert (Counter, 300_000);
-
-      Counter := 0;
-      S_Addr := Addr (S);
-      M.Start_Measure;
-      for Idx in 1 .. 300_000_000 loop
-         if Nstd.Unsafe.Get_UTF8 (S_Addr) = 97 then
-            Counter := Counter + 1;
-         end if;
-      end loop;
-      M.End_Measure;
-      M.Display_Measure ("get_utf8 (2)");
-      A.Assert (Counter, 300_000);
-
-      Counter := 0;
-      M.Start_Measure;
-      for C of S loop
-         if C = 97 then
-            Counter := Counter + 1;
-         end if;
-      end loop;
-      M.End_Measure;
-      M.Display_Measure ("time");
-      A.Assert (Counter, 300_000);
-
-   end;
-
-   IO.Put_Line ("Get_UTF8 tests (3 byte characters)");
-   declare
-      use NStd.Byteops;
-      use all type NStd.UInt8;
-      S : constant Bytes := Parse_C_Literal ("\xE2\x82\xAC") * 100_000_000;
-      S_Addr : System.Address := Addr (S);
-      S_Offset : NStd.SizeType := 0;
-      Counter : Integer := 0;
-   begin
-      M.Start_Measure;
-      for C of S loop
-         if C = 97 then
-            Counter := Counter + 1;
-         end if;
-      end loop;
-      M.End_Measure;
-      M.Display_Measure ("byte iterator");
-      A.Assert (Counter, 300_000);
-
-      Counter := 0;
-      S_Addr := Addr (S);
-      M.Start_Measure;
-      for Idx in 1 .. 100_000_000 loop
-         if Nstd.Unsafe.Get_UTF8 (S_Addr) = 97 then
-            Counter := Counter + 1;
-         end if;
-      end loop;
-      M.End_Measure;
-      M.Display_Measure ("get_utf8 (2)");
-      A.Assert (Counter, 300_000);
-
-      M.Start_Measure;
-      A.Assert (Nstd.Unsafe.Validate_UTF8 (Addr (S), Length (S)));
-      M.End_Measure;
-      M.Display_Measure ("validation");
-
-      M.Start_Measure;
-      A.Assert (Nstd.Unsafe.Validate_UTF8 (Addr (S), Length (S)));
-      M.End_Measure;
-      M.Display_Measure ("validation");
-
+      A.Assert (Integer(Nstd.Unsafe.Get_UTF8 (S_Addr)), 16#61#);
+      A.Assert (Integer(Nstd.Unsafe.Get_UTF8 (S_Addr)), 16#0140#);
+      A.Assert (Integer(Nstd.Unsafe.Get_UTF8 (S_Addr)), 16#20AC#);
+      A.Assert (Integer(Nstd.Unsafe.Get_UTF8 (S_Addr)), 16#0120AC#);
    end;
 
    return A.Report;
