@@ -228,7 +228,7 @@ package body NStd.Unsafe is
          Self := Addr (Self, 2);
 
       elsif Result < 16#F0# then
-         Result := Shift_Left (Result, 12) or
+         Result := Shift_Left (Result and 16#0F#, 12) or
             (Shift_Left (UInt32 (Get (Self, 1)) and 16#3F#, 6)) or
             (UInt32 (Get (Self, 2)) and 16#3F#);
          Self := Addr (Self, 3);
