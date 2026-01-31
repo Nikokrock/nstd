@@ -95,7 +95,7 @@ def gprbuild(
             "instrument",
             "--level",
             "stmt+mcdc",
-            "--relocate-build-tree",
+            f"--relocate-build-tree={cwd}",
             "--dump-trigger=atexit",
             "--projects",
             driver.env.default_withed_projects[0],
@@ -108,7 +108,7 @@ def gprbuild(
             project_file,
         ] + scenario_cmd
         p = Run(gnatcov_cmd, cwd=cwd, timeout=timeout, **kwargs)
-        assert p.status == 0, "gnatcov instrumentation failed"
+        assert p.status == 0, f"gnatcov instrumentation failed:\n{p.out}"
 
     # Determine the gprbuild command line
     gprbuild_cmd = [
@@ -136,7 +136,7 @@ def gprbuild(
             "--target={target}".format(target=driver.env.target.triplet)
         )
 
-    p =Run(
+    p = Run(
         gprbuild_cmd,
         cwd=cwd,
         timeout=timeout,
