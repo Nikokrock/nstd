@@ -458,6 +458,7 @@ package body NStd.ByteOps is
 
    function Unsafe_Get_UInt64 (Self : Bytes; C : in out Cursor) return UInt64
    is
+      pragma Unreferenced (Self);
       Result : UInt64;
       for Result'Address use C.Current;
    begin
@@ -467,6 +468,7 @@ package body NStd.ByteOps is
 
    function Unsafe_Get_UInt32 (Self : Bytes; C : in out Cursor) return UInt32
    is
+      pragma Unreferenced (Self);
       Result : UInt32;
       for Result'Address use C.Current;
    begin
