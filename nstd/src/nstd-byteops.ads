@@ -42,8 +42,6 @@ package NStd.ByteOps is
    --  function and advanced using Next or UTF8_Next, and are checked for
    --  validity with Has_Element.
 
-   Not_Found : constant SizeType := SizeType'Last;
-
    ------------------
    -- Constructors --
    ------------------
@@ -218,17 +216,41 @@ package NStd.ByteOps is
    --  normalization (such as encoding changes or whitespace trimming) are
    --  performed.
 
-   function Find (Self : Bytes; B : Byte; Index : SizeType := 0) return SizeType
+   function Find (Self : Bytes; B : Byte) return SizeType
    with Inline => True;
-   --  Find a byte B in Self at a position greater than or equal to Index. If
-   --  B is found then the function returns the associated Index. Otherwise, the
-   --  function returns the special value Not_Found.
 
-   function Find
-      (Self : Bytes; Pattern : Bytes; Index : SizeType := 0) return SizeType;
-   --  Find the Pattern in Self at a position greater than or equal to Index. If
-   --  Pattern is found then the function returns the associated Index.
-   --  Otherwise, the function returns the special value Not_Found.
+   function Find (Self : Bytes; B : Byte; First : SizeType) return SizeType
+   with Inline => True;
+   --  Find the first byte B in Self at a position greater than or equal to
+   --  Index. If B is found then the function returns the associated Index.
+   --  Otherwise, the function returns the special value NOT_FOUND.
+
+   function Find (Self : Bytes; C : Character) return SizeType
+   with Inline_Always => True;
+
+   function Find (Self : Bytes; C : Character; First : SizeType) return SizeType
+   with Inline_Always => True;
+
+   function RFind (Self : Bytes; B : Byte) return SizeType
+   with Inline => True;
+
+   function RFind (Self : Bytes; B : Byte; Last : SizeType) return SizeType
+   with Inline => True;
+   --  Find the last byte B in Self at a position strictly inferior to
+   --  Index. If B is found then the function returns the associated Index.
+   --  Otherwise, the function returns the special value NOT_FOUND.
+
+   function Find (Self : Bytes; Pattern : Bytes) return SizeType;
+   --  Find the first occurence of Pattern in Self at a position greater than or
+   --  equal to Index. If Pattern is found then the function returns the
+   --  associated Index. Otherwise, the function returns the special value
+   --  NOT_FOUND.
+
+   function RFind (Self : Bytes; Pattern : Bytes) return SizeType;
+   --  Find the last occurence of Pattern in Self at a position inferior than or
+   --  equal to Index. If Pattern is found then the function returns the
+   --  associated Index. Otherwise, the function returns the special value
+   --  Not_Found.
 
    function Count
       (Self: Bytes; B : Byte; Index : SizeType := 0) return SizeType;

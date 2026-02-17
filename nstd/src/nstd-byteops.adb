@@ -476,7 +476,9 @@ package body NStd.ByteOps is
       return Result;
    end Unsafe_Get_UInt32;
 
-   function Find (Self : Bytes; B : Byte; Index : SizeType:=0) return SizeType
+   -- Find --
+
+   function Find (Self : Bytes; B : Byte) return SizeType
    is
       pragma Suppress(All_Checks);
 
@@ -490,41 +492,191 @@ package body NStd.ByteOps is
 
    begin
       if Length (Self) = 0 then
-         return SizeType'Last;
+         return NOT_FOUND;
       end if;
 
       declare
-         C_Begin : constant Address := Addr (Self);
-         C_Start : constant Address := C_Begin + Index;
-         C_End   : constant Address := C_Begin + Length (Self);
-         Result_Address : constant Address := Internal_Find (C_Start, C_End, B);
-         Result_Offset : constant SizeType :=
-            NStd.Unsafe.Offset (Result_Address, C_Begin);
+         Result_Address : constant Address :=
+           Internal_Find (Addr (Self), Addr (Self) + Length (Self), B);
+         Result_Offset : constant SizeType := Result_Address - Addr (Self);
+
       begin
          if Result_Offset >= Length (Self) then
-            return SizeType'Last;
+            return NOT_FOUND;
          else
             return Result_Offset;
          end if;
       end;
    end Find;
 
-   function Find
-      (Self : Bytes; Pattern : Bytes; Index : SizeType := 0) return SizeType
+   function Find (Self : Bytes; B : Byte; First : SizeType) return SizeType
    is
-      C_Begin : constant Address := Addr (Self);
-      C_Start : constant Address := C_Begin + Index;
-      C_Length : constant SizeType := Length (Self) - Index;
+      pragma Suppress(All_Checks);
 
-      P_Start : constant Address := Addr (Pattern);
-      P_Length : constant SizeType := Length (Pattern);
+      function Internal
+         (C_Start : Address;
+          C_End   : Address;
+          B       : Byte) return Address
+      with Import        => True,
+           Convention    => CPP,
+           External_Name => "_ZN7simdutf4findEPKcS1_c";
+
    begin
-      if Length (Pattern) = 0 or else Length (Self) = 0 then
-         return SizeType'Last;
+      if First < 0 or else First >= Length (Self) then
+         return NOT_FOUND;
       end if;
 
-      return 0;
+      declare
+         Start_Addr : constant Address := Addr (Self) + First;
+         End_Addr : constant Address := Addr (Self) + Length (Self);
+         Result_Addr : constant Address := Internal (Start_Addr, End_Addr, B);
+         Result_Offset : constant SizeType := Result_Addr - Addr (Self);
+
+      begin
+         if Result_Offset >= Length (Self) then
+            return NOT_FOUND;
+         else
+            return Result_Offset;
+         end if;
+      end;
    end Find;
+
+   function Find (Self : Bytes; C : Character) return SizeType is
+   begin
+      return Find (Self, As_Byte (C));
+   end Find;
+
+   function Find
+     (Self : Bytes; C : Character; First : SizeType)
+      return SizeType
+   is
+   begin
+      return Find (Self, As_Byte (C), First);
+   end Find;
+
+   -- RFind --
+
+   function RFind (Self : Bytes; B : Byte) return SizeType
+   is
+      pragma Suppress(All_Checks);
+
+      function memrchr
+         (Haystack : Address;
+          Needle   : Byte;
+          H_Length : SizeType) return Address
+      with Import        => True,
+           Convention    => C,
+           External_Name => "memrchr";
+
+   begin
+      if Length (Self) = 0 then
+         return NOT_FOUND;
+      end if;
+
+      declare
+         Result_Addr : constant Address := memrchr
+           (Addr (Self), B, Length (Self));
+      begin
+         if Result_Addr = Null_Address then
+            return NOT_FOUND;
+         else
+            return Result_Addr - Addr (Self);
+         end if;
+      end;
+   end RFind;
+
+   function RFind (Self : Bytes; B : Byte; Last : SizeType) return SizeType
+   is
+      pragma Suppress(All_Checks);
+
+      function memrchr
+         (Haystack : Address;
+          Needle   : Byte;
+          H_Length : SizeType) return Address
+      with Import        => True,
+           Convention    => C,
+           External_Name => "memrchr";
+
+   begin
+      if Last > Length (Self) or else Last <= 0 then
+         return NOT_FOUND;
+      end if;
+
+      declare
+
+         Result_Addr : constant Address := memrchr (Addr (Self), B, Last);
+      begin
+         if Result_Addr = Null_Address then
+            return NOT_FOUND;
+         else
+            return Result_Addr - Addr (Self);
+         end if;
+      end;
+   end RFind;
+   -- Find --
+
+   function Find (Self : Bytes; Pattern : Bytes) return SizeType
+   is
+      function sz_find
+         (Haystack : Address;
+	       H_Length : SizeType;
+	       Needle   : Address;
+	       N_Length : SizeType)
+         return Address;
+      pragma Import (C, sz_find, "sz_find");
+
+   begin
+      if Length (Pattern) = 0 then
+         return 0;
+
+      elsif Length (Self) < Length (Pattern) then
+         return NOT_FOUND;
+
+      else
+         declare
+            Result_Addr : constant Address := sz_find
+               (Addr (Self), Length (Self), Addr (Pattern), Length (Pattern));
+         begin
+            if Result_Addr = Null_Address then
+               return NOT_FOUND;
+            else
+               return Result_Addr - Addr (Self);
+            end if;
+         end;
+      end if;
+   end Find;
+
+   -- RFind --
+
+   function RFind (Self : Bytes; Pattern : Bytes) return SizeType
+   is
+
+      function sz_find
+         (Haystack : Address;
+	       H_Length : SizeType;
+	       Needle   : Address;
+	       N_Length : SizeType)
+         return Address;
+      pragma Import (C, sz_find, "sz_rfind");
+
+   begin
+      if Length (Pattern) = 0 then
+         return 0;
+      elsif Length (Self) < Length (Pattern) then
+         return NOT_FOUND;
+      else
+         declare
+            Result_Addr : constant Address := sz_find
+               (Addr (Self), Length (Self), Addr (Pattern), Length (Pattern));
+         begin
+            if Result_Addr = Null_Address then
+               return NOT_FOUND;
+            else
+               return Result_Addr - Addr (Self);
+            end if;
+         end;
+      end if;
+   end RFind;
 
    function Count (Self: Bytes; B: Byte; Index: SizeType := 0) return SizeType
    is
@@ -535,7 +687,7 @@ package body NStd.ByteOps is
          return 0;
       else
          while Cindex < Length (Self) loop
-            Cindex := Find (Self, B => B, Index => Cindex);
+            Cindex := Find (Self, B => B, First => Cindex);
             exit when Cindex = SizeType'Last;
             Result := Result + 1;
             Cindex := Cindex + 1;
