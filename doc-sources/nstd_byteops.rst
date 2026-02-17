@@ -249,7 +249,8 @@ The API provides the following functions:
     :header: "Function/Procedure", "Description"
 
     "=", "the equal operator allows comparison of a Bytes object with both Bytes and String"
-    "Find", "find a given byte or pattern in a Bytes object"
+    "Find", "find a given byte, character or pattern in a Bytes object"
+    "RFind", "reverse find a given byte, character or pattern in a Bytes object"
     "Count", "count the number of occurence of a given byte"
     "Starts_With", "check for a prefix in a Bytes object"
     "Ends_With", "check for a suffix in a Bytes object"
