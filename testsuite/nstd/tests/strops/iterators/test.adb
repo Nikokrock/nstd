@@ -1,7 +1,5 @@
 with Test_Assert;
-with Test_Measure; use Test_Measure;
 with NStd.Strops; use NStd.Strops;
-with NStd.Byteops; use NStd.Byteops;
 with NStd; use NStd;
 
 function Test return Integer is

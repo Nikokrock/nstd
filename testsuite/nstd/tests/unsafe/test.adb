@@ -1,5 +1,4 @@
 with Test_Assert;
-with Test_Measure;
 with NStd;
 with NStd.Unsafe;
 with NStd.Byteops;
@@ -9,7 +8,6 @@ with GNAT.IO;
 function Test return Integer is
    package A renames Test_Assert;
    package IO renames GNAT.IO;
-   package M renames Test_Measure;
 
    use all type System.Address;
    use all type NStd.SizeType;
@@ -48,7 +46,6 @@ begin
    IO.Put_Line ("Get_UTF8 tests");
    declare
       use NStd.Byteops;
-      use all type NStd.UInt8;
       S : constant Bytes := Parse_C_Literal
          ("a\xC5\x80\xE2\x82\xAC\xF0\x92\x82\xAC");
       S_Addr : System.Address := Addr (S);

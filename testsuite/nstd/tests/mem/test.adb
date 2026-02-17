@@ -1,8 +1,5 @@
 with Test_Assert;
-with Test_Measure;
 with NStd;
-with NStd.Unsafe;
-with NStd.Byteops;
 with System;
 with GNAT.IO;
 with NStd.Mem;
@@ -10,12 +7,10 @@ with NStd.Mem;
 function Test return Integer is
    package A renames Test_Assert;
    package IO renames GNAT.IO;
-   package M renames Test_Measure;
    package Mem renames NStd.Mem;
 
    use all type System.Address;
    use all type NStd.SizeType;
-   use all type NStd.UInt32;
 
    procedure Assert_Allocate_Fail (Length : NStd.SizeType) is
       B : Mem.Block;
