@@ -40,6 +40,8 @@ package NStd is
    --  is 2 ^ 63 - 2 bytes
    --  On 32 bits platforms the max size is thus 2 ^ 31 - 2 bytes (~2GB)
 
+   NOT_FOUND : constant SizeType := SizeType'Last;
+
    function As_Char (B: Byte) return Character
    with Inline => True;
    --  Return the character corresponding to Byte B
