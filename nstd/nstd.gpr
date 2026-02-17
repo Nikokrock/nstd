@@ -44,7 +44,7 @@ library project NStd is
       ("NSTD_MALLOC", NStd_Constants.NSTD_MALLOC_DEFAULT);
 
    Project_Languages := ("Ada", "C", "C++");
-   Sources := ("src", "src/simdutf");
+   Sources := ("src", "src/simdutf", "src/stringzilla");
 
    for Languages use Project_Languages;
 
