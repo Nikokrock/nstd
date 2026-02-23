@@ -3,7 +3,7 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
 
-package body NStd.Atomics is
+package body NStd.Counters.Atomics is
 
    Seq_Cst : constant := 5;
 
@@ -59,4 +59,4 @@ package body NStd.Atomics is
       return Result;
    end Counter_Value;
 
-end NStd.Atomics;
+end NStd.Counters.Atomics;

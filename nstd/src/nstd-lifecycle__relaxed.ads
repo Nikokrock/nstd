@@ -63,12 +63,6 @@ package NStd.Lifecycle is
 
    function Reference_Count (Self : Refcounted_Mem) return UInt64;
 
-   procedure Adjust (Self : in out Refcounted_Mem)
-   with Inline => True;
-
-   procedure Finalize (Self : in out Refcounted_Mem)
-   with Inline => True;
-
    Empty_Refcounted_Mem : constant Refcounted_Mem;
 
 private
@@ -82,6 +76,13 @@ private
       (Finalize             => Finalize,
        Adjust               => Adjust,
        Relaxed_Finalization => True);
+
+   procedure Adjust (Self : in out Refcounted_Mem)
+   with Inline => True;
+
+   procedure Finalize (Self : in out Refcounted_Mem)
+   with Inline => True;
+
 
    Empty_Refcounted_Mem : constant Refcounted_Mem :=
       (Empty_Block, Null_Address, Null_Address);

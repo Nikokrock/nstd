@@ -44,7 +44,7 @@ library project NStd is
       ("NSTD_MALLOC", NStd_Constants.NSTD_MALLOC_DEFAULT);
 
    Project_Languages := ("Ada", "C", "C++");
-   Sources := ("src", "src/simdutf", "src/stringzilla");
+   Sources := ("src", "src/simdutf", "src/stringzilla", "src/counters");
 
    for Languages use Project_Languages;
 
@@ -135,10 +135,10 @@ library project NStd is
 
    package Naming is
 
+      for Specification ("NStd.Ref_Counters")
+        use "nstd-ref_counters__" & Reference_Counting & ".ads";
       for Specification ("NStd.Lifecycle")
-        use "nstd-lifecycle__" & Finalization  & "_" & Reference_Counting & ".ads";
-      for Implementation ("NStd.Lifecycle")
-        use "nstd-lifecycle__" & Finalization  & "_" & Reference_Counting & ".adb";
+        use "nstd-lifecycle__" & Finalization & ".ads";
       for Specification ("NStd.Memory")
         use "nstd-memory__" & Malloc & ".ads";
    end Naming;

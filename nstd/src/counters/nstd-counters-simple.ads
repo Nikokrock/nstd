@@ -5,7 +5,9 @@
 
 with System;
 
-package NStd.Atomics is
+package NStd.Counters.Simple is
+
+   type Counter is mod 2 ** 64 with Atomic;
 
    subtype CounterRef is System.Address;
    --  Address needs to point to a region of memory of at least 8 bytes
@@ -24,4 +26,4 @@ package NStd.Atomics is
    function Counter_Value (Self : CounterRef) return UInt64
    with Inline_Always => True;
 
-end NStd.Atomics;
+end NStd.Counters.Simple;

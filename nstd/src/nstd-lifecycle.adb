@@ -3,11 +3,13 @@
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 --
-with NStd.Memory;
 with NStd.Unsafe;
-with NStd.Atomics;
+with NStd.Memory;
+with NStd.Ref_Counters;
 
 package body NStd.Lifecycle is
+
+   package Counters renames NStd.Ref_Counters;
 
    --  Max size for objects stored directly inside a refcounted_mem. Below that
    --  size the refcounted_mem object has the following structure:
@@ -52,7 +54,7 @@ package body NStd.Lifecycle is
       else
          if Self.Counter /= Null_Address then
             --  If the block is already refcounted, just increment the counter.
-            NStd.Atomics.Increment (Self.Counter);
+            Counters.Increment (Self.Counter);
 
          elsif Self.Block_Addr = Limited_Reference then
             --  On assignment of reference force cloning if this is a limited
@@ -79,7 +81,7 @@ package body NStd.Lifecycle is
       declare
          BA : constant System.Address := Self.Block_Addr;
       begin
-         if NStd.Atomics.Decrement (CA) then
+         if Counters.Decrement (CA) then
             --  Free the memory block.
             NStd.Memory.Free (BA);
 
@@ -116,8 +118,8 @@ package body NStd.Lifecycle is
          Self.Block_Addr := Block.Addr;
 
          --  We need a separate memory block for the counter in that case
-         Self.Counter := NStd.Unsafe.Allocate (8);
-         NStd.Atomics.Initialize(Self.Counter);
+         Self.Counter := NStd.Unsafe.Allocate (Counters.Counter'Size / 8);
+         Counters.Initialize(Self.Counter);
       end if;
    end Start_Refcounting;
 
@@ -173,12 +175,14 @@ package body NStd.Lifecycle is
          Self.Block.Length := Block.Length;
       else
          --  Allocate needed data + size of counter address
-         Self.Block_Addr := NStd.Unsafe.Allocate (Block.Length + 8);
+         Self.Block_Addr := NStd.Unsafe.Allocate
+            (Block.Length + Counters.Counter'Size / 8);
          Self.Block.Addr := NStd.Memory.memcpy
-            (Self.Block_Addr + 8, Block.Addr, Block.Length);
+            (Self.Block_Addr + Counters.Counter'Size / 8,
+             Block.Addr, Block.Length);
          Self.Counter := Self.Block_Addr;
          Self.Block.Length := Block.Length;
-         NStd.Atomics.Initialize (Self.Counter);
+         Counters.Initialize (Self.Counter);
       end if;
    end;
 
@@ -234,7 +238,7 @@ package body NStd.Lifecycle is
             Result.Counter := Self.Counter;
 
             if Self.Counter /= Null_Address then
-               NStd.Atomics.Increment (Self.Counter);
+               Counters.Increment (Self.Counter);
             elsif Self.Block_Addr = Limited_Reference then
                Clone_And_Start_Refcounting (Result, Result.Block);
             end if;
@@ -266,7 +270,7 @@ package body NStd.Lifecycle is
       if Self.Block.Length <= SSO_Max or else Self.Counter = Null_Address then
          return 0;
       else
-         return NStd.Atomics.Counter_Value (Self.Counter);
+         return Counters.Counter_Value (Self.Counter);
       end if;
    end Reference_Count;
 
