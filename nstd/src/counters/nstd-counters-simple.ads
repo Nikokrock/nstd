@@ -7,7 +7,7 @@ with System;
 
 package NStd.Counters.Simple is
 
-   type Counter is mod 2 ** 64 with Atomic;
+   type Counter is mod 2 ** 64;
 
    subtype CounterRef is System.Address;
    --  Address needs to point to a region of memory of at least 8 bytes
