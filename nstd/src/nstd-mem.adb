@@ -3,6 +3,9 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 with NStd.Memory;
 with Ada.Unchecked_Conversion;
+pragma Warnings(Off);
+with Ada.Strings.Unbounded.Aux;
+pragma Warnings(On);
 
 package body NStd.Mem is
 
@@ -108,6 +111,22 @@ package body NStd.Mem is
    begin
       if Self'Length > 0 then
          return (Addr => Self (Self'First)'Address, Length => Self'Length);
+      else
+         return Empty_Block;
+      end if;
+   end Ref;
+
+   function Ref (Self : Ada.Strings.Unbounded.Unbounded_String) return Block is
+      pragma Suppress (All_Checks);
+      use Ada.Strings.Unbounded.Aux;
+      Str_Length : Natural;
+      Str_Access : Big_String_Access;
+
+   begin
+      Get_String (Self, Str_Access, Str_Length);
+      if Str_Length > 0 then
+         return (Addr => Str_Access (1)'Address,
+                 Length => SizeType (Str_Length));
       else
          return Empty_Block;
       end if;

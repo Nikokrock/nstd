@@ -3,6 +3,7 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-Exception
 
 with System; use System;
+with Ada.Strings.Unbounded;
 
 package NStd.Mem is
 
@@ -53,6 +54,9 @@ package NStd.Mem is
    function Ref (Self : String) return Block
    with Inline => True;
    --  Get a reference to the block of memory containing a given string.
+
+   function Ref (Self : Ada.Strings.Unbounded.Unbounded_String) return Block
+   with Inline => True;
 
    function Is_Content_Equal (Left : Block; Right : Block) return Boolean
    with Inline => True;
