@@ -17,6 +17,12 @@ package body NStd.Simdutf is
       return Boolean (Internal (Buf, Len));
    end Validate_UTF8;
 
+   function Validate_UTF8 (B : Block) return Boolean
+   is
+   begin
+      return Validate_UTF8 (Buf => B.Addr, Len => B.Length);
+   end Validate_UTF8;
+
    function Validate_ASCII (Buf : Address; Len : SizeType) return Boolean
    is
       function Internal

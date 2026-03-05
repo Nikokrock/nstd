@@ -6,10 +6,14 @@
 --  check the Simdutf project. Ada function names map to the C/C++ name
 
 with System; use System;
+with NStd.Mem; use NStd.Mem;
 
 package NStd.Simdutf is
 
    function Validate_UTF8 (Buf : Address; Len : SizeType) return Boolean
+   with Inline_Always => True;
+
+   function Validate_UTF8 (B : Block) return Boolean
    with Inline_Always => True;
 
    function Validate_ASCII (Buf : Address; Len : SizeType) return Boolean
