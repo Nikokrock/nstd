@@ -5,12 +5,22 @@
 --
 
 with NStd.Unsafe;
+with NStd.Simdutf;
+with NStd.Mem; use NStd.Mem;
 
 package body NStd.StrOps is
 
-   function Clone (S: String) return Str
+   -- Clone --
+
+   function Clone (S: String; Check : Boolean := True) return Str
    is
    begin
+      if Check and then
+        not NStd.Simdutf.Validate_UTF8 (NStd.Mem.Ref (S))
+      then
+         raise Invalid_UTF8;
+      end if;
+
       return Result : Str do
          if S'Length > 0 then
             Result.Content := NStd.Byteops.Clone (S);
@@ -18,26 +28,34 @@ package body NStd.StrOps is
       end return;
    end Clone;
 
-   function Clone (S: Ada.Strings.Unbounded.Unbounded_String) return Str
+   function Clone (S: Unbounded_String; Check : Boolean := True) return Str
    is
    begin
+      if Check and then
+        not NStd.Simdutf.Validate_UTF8 (NStd.Mem.Ref (S))
+      then
+         raise Invalid_UTF8;
+      end if;
+
       return result: Str do
-         Result.Content :=  NStd.Byteops.Clone (S);
+         Result.Content := NStd.Byteops.Clone (S);
       end return;
    end Clone;
 
-   -- Clone --
+   function Clone (S : NStd.Byteops.Bytes; Check : Boolean := True) return Str
+   is
+   begin
+      if Check and then not NStd.Byteops.Validate_UTF8 (S) then
+         raise Invalid_UTF8;
+      end if;
+      return (Content => NStd.Byteops.Clone (S));
+   end Clone;
 
    function Clone (Self : Str) return Str
    is
    begin
+      -- Cloning a Str does not require a check
       return (Content => NStd.Byteops.Clone (Self.Content));
-   end Clone;
-
-   function Clone (S : NStd.Byteops.Bytes) return Str
-   is
-   begin
-      return (Content => NStd.Byteops.Clone (S));
    end Clone;
 
    function "*" (Pattern : Str; N : SizeType) return Str is
@@ -146,6 +164,11 @@ package body NStd.StrOps is
    begin
       return (Content => NStd.Byteops.Slice (Self.Content, First, Last));
    end;
+
+   function Hex (Self : Str) return String is
+   begin
+      return NStd.Byteops.Hex (Self.Content);
+   end Hex;
 
    function "=" (Left, Right : Str) return Boolean is
       use all type NStd.Byteops.Bytes;

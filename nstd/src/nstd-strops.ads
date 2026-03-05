@@ -5,7 +5,7 @@
 --
 
 with NStd.ByteOps;
-with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with System; use System;
 
 package NStd.StrOps is
@@ -17,17 +17,28 @@ package NStd.StrOps is
                      Element     => Unsafe_Get);
    Empty_Str : constant Str;
 
+   Invalid_UTF8 : exception;
+
    type Cursor is private;
 
-   function Clone (S: String) return Str;
-
-   function Clone (S: Ada.Strings.Unbounded.Unbounded_String) return Str;
-
-   function Clone (S : NStd.Byteops.Bytes) return Str;
-
+   function Clone (S : String; Check : Boolean := True) return Str;
+   function Clone (S : Unbounded_String; Check : Boolean := True) return Str;
+   function Clone (S : NStd.Byteops.Bytes; Check : Boolean := True) return Str;
    function Clone (Self : Str) return Str
    with Inline => True;
-   --  Create a complete copy (including buffer) of a Str.
+   --  Initialize a Bytes object from either Bytes, String, Unbounded_String or
+   --  or Str.
+   --
+   --  Clone always performs a deep copy of the data, ensuring the new Str
+   --  object owns its own memory. In contrast, assignment or slicing operations
+   --  share data with the original object. In some contexts, such as
+   --  multitasking, users may want to ensure that data is fully copied using
+   --  the Clone operation rather than regular assignment.
+   --
+   --  UTF-8 validation is performed on input objects unless Check is set to
+   --  False (sometimes the user may know in advance that the input is valid
+   --  UTF-8). If the validation fails then Invalid_UTF8 exception is raised.
+   --  No validation is performed when cloning a Str object.
 
    function "*" (Pattern : Str; N : SizeType) return Str
    with Inline_Always => True;
@@ -105,6 +116,8 @@ package NStd.StrOps is
 
    function Slice (Self : Str; First, Last : SizeType) return Str
    with Inline => True;
+
+   function Hex (Self : Str) return String;
 
 private
 
