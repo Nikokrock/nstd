@@ -96,9 +96,6 @@ package NStd.Unsafe is
    function Get_UTF8 (Self : in out Address) return UInt32
    with Inline => True;
 
-   function Validate_UTF8 (Self : Address; Length : SizeType) return Boolean
-   with Inline_Always => True;
-
    ----------
    -- Misc --
    ----------

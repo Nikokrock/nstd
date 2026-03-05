@@ -257,18 +257,6 @@ package body NStd.Unsafe is
       end if;
    end Get_UTF8;
 
-   function Validate_UTF8 (Self : Address; Length : SizeType) return Boolean is
-      function Internal
-         (Self : Address;
-          Length : SizeType)
-         return Interfaces.C.C_bool
-      with Import => True,
-           Convention => CPP,
-           External_Name => "_ZN7simdutf13validate_utf8EPKcm";
-   begin
-      return Boolean (Internal (Self, Length));
-   end Validate_UTF8;
-
    -- Reference --
 
    function Reference (S : String) return Address is
