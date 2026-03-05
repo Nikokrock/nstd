@@ -359,6 +359,10 @@ package NStd.ByteOps is
 
    function Hex (Self : Bytes) return String;
 
+   function Validate_UTF8 (Self : Bytes) return Boolean
+   with Inline => True;
+   --  Return True if Bytes contains a valid UTF8 sequence
+
 private
 
    type Bytes is record

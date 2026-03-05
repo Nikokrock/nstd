@@ -7,6 +7,7 @@
 with NStd.Unsafe;
 with NStd.Memory;
 with NStd.ASCII;
+with NStd.Simdutf;
 pragma Warnings(Off);
 with Ada.Strings.Unbounded.Aux;
 with NStd.MutableByteOps;
@@ -788,4 +789,13 @@ package body NStd.ByteOps is
 
       return S;
    end Hex;
+
+   -- Validate_UTF8 --
+
+   function Validate_UTF8 (Self : Bytes) return Boolean is
+   begin
+      return NStd.Simdutf.Validate_UTF8
+        (Buf => Addr (Self), Len => Length (Self));
+   end Validate_UTF8;
+
 end NStd.ByteOps;
