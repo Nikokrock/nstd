@@ -2,6 +2,7 @@ with Test_Assert;
 with System;
 with NStd; use NStd;
 with NStd.Strops; use NStd.Strops;
+with NStd.Byteops;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with GNAT.IO;
 
@@ -71,6 +72,32 @@ begin
          A.Assert (False, "No exception should be raised");
    end;
 
+   declare
+      use NStd.Byteops;
+      Byte_Object : Bytes := Clone (S1);
+      Bad_Byte_Object : Bytes := Clone (BadS);
+   begin
+      B := Clone (Byte_Object);
+
+      begin
+         B := Clone (Bad_Byte_Object);
+         A.Assert (False, "Exception not raised");
+      exception
+         when Invalid_UTF8 =>
+            A.Assert (True, "Exception raised");
+         when others =>
+            A.Assert (False, "Wrong exception");
+      end;
+
+      begin
+         B := Clone (Bad_Byte_Object, Check => False);
+         A.Assert (True, "Exception not raised!");
+      exception
+         when others =>
+            A.Assert (False, "No exception should be raised");
+      end;
+   end;
+
    B := Clone (To_Unbounded_String (""));
    A.Assert (B = "");
 
@@ -109,6 +136,5 @@ begin
    end;
 
    return A.Report;
-
 
 end Test;
