@@ -160,9 +160,7 @@ package body NStd.ByteOps is
    function Acquire (Addr : System.Address; Length : SizeType) return Bytes is
    begin
       return Result : Bytes do
-         if Length > 0 then
-            NStd.Lifecycle.Start_Refcounting (Result.Content, (Addr, Length));
-         end if;
+         NStd.Lifecycle.Start_Refcounting (Result.Content, (Addr, Length));
       end return;
    end Acquire;
 

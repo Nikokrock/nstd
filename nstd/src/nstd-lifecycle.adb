@@ -104,7 +104,15 @@ package body NStd.Lifecycle is
    is
       pragma Suppress (All_Checks);
    begin
-      if Block.Length <= SSO_Max then
+      if Block.Length = 0 then
+         Self := Empty_Refcounted_Mem;
+         if Block.Addr /= Null_Address then
+            --  As we are in charge of the original block of memory we need to
+            --  release it.
+            NStd.Memory.Free (Block.Addr);
+         end if;
+
+      elsif Block.Length <= SSO_Max then
          Self.Block.Addr := Self'Address + 16;
          Self.Block.Length := Block.Length;
          Self.Block.Addr := NStd.Memory.memcpy
