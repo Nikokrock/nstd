@@ -188,8 +188,7 @@ package NStd.ByteOps is
    --
    --  The function is equivalent to
    --  Slice (Self, Length (Self) - N, Length (Self)). As such, negative
-   --  values for N are interpreted as Length (Self) + N. So in that case the
-   --  function can be interpreted as all the bytes of Self starting from index
+   --  values for N are interpreted all the bytes of Self starting from index
    --  -N.
 
    function Trim (Self : Bytes) return Bytes;
