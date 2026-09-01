@@ -197,10 +197,13 @@ package body NStd.Lifecycle is
       Abs_Last  : SizeType := Last;
       Slice_Length : SizeType := 0;
    begin
+      --  A slice on an empty block always returns an empty block.
       if Self.Block.Length = 0 then
          return Empty_Refcounted_Mem;
       end if;
 
+      --  Compute the effective last index (note that last index is always
+      --  excluded).
       if Abs_Last < -Self.Block.Length then
          return Empty_Refcounted_Mem;
       elsif Abs_Last < 0 then
@@ -209,6 +212,7 @@ package body NStd.Lifecycle is
          Abs_Last := Self.Block.Length;
       end if;
 
+      --  Do likewise to get the offset of the first included byte.
       if Abs_First < - Self.Block.Length then
          Abs_First := 0;
       elsif Abs_First < 0 then
@@ -219,9 +223,10 @@ package body NStd.Lifecycle is
          return Empty_Refcounted_Mem;
       end if;
 
+      --  Compute final slice length.
       Slice_Length := Abs_Last - Abs_First;
 
-      if Slice_Length <= 16 then
+      if Slice_Length <= SSO_Max then
          return Result : Refcounted_Mem do
             Result.Block.Addr := Result'Address + 16;
             Result.Block.Addr := NStd.Memory.memcpy
@@ -232,7 +237,7 @@ package body NStd.Lifecycle is
          end return;
       else
          return Result : Refcounted_Mem do
-            Result.Block.Addr := Self.Block.Addr + First;
+            Result.Block.Addr := Self.Block.Addr + Abs_First;
             Result.Block_Addr := Self.Block_Addr;
             Result.Block.Length := Slice_Length;
             Result.Counter := Self.Counter;
